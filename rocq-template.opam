@@ -1,0 +1,22 @@
+opam-version: "2.0"
+name: "rocq-template"
+version: "0.1.0"
+synopsis: "Minimal Rocq + MathComp template"
+maintainer: "Devin AI <devin-ai-integration[bot]@users.noreply.github.com>"
+depends: [
+  "ocaml" {>= "4.14.0"}
+  "coq" {= "9.0.0"}
+  "coq-mathcomp-ssreflect" {= "2.4.0"}
+  "coq-mathcomp-algebra" {= "2.4.0"}
+  "coq-mathcomp-field" {= "2.4.0"}
+  "coq-mathcomp-fingroup" {= "2.4.0"}
+  "coq-mathcomp-finmap" {>= "2.1.0"}
+  "coq-mathcomp-solvable" {= "2.4.0"}
+]
+build: [
+  ["coq_makefile" "-f" "_CoqProject" "-o" "Makefile.coq"]
+  ["%{make}%" "-f" "Makefile.coq" "-j%{jobs}%"]
+]
+install: [
+  ["%{make}%" "-f" "Makefile.coq" "install"]
+]

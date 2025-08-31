@@ -1,0 +1,8 @@
+.*~undo-tree~
+*.vo
+*.vok
+*.vos
+*.glob
+*.aux
+*.*~
+.Makefile.coq.d

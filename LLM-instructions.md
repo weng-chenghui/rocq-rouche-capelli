@@ -1,0 +1,1 @@
+1. When encountering an error and looping over small fixes to try to fix it, stop and ask the user to try to run Rocq in the interactive mode and report what in the Coq Goals window to get better context.
