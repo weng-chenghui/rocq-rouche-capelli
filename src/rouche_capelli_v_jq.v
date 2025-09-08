@@ -1,7 +1,8 @@
+From HB Require Import structures.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice.
 From mathcomp Require Import fintype finfun bigop finset fingroup perm order.
 From mathcomp Require Import div prime binomial ssralg finalg zmodp matrix.
-From mathcomp Require Import mxalgebra vector tuple.
+From mathcomp Require Import mxalgebra vector tuple finfield.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -13,6 +14,31 @@ Section RoucheCapelliTheorems.
 
 Variable R : fieldType.
 
+Section vT_finType.
+
+Variable K : finFieldType.
+Variable vT : vectType K.
+Definition v := can_type (@VectorInternalTheory.v2rK K vT).
+Goal (can_type (@VectorInternalTheory.v2rK K vT)) = vT.
+reflexivity.
+Qed.
+
+Check v : finType.
+HB.instance Definition _ := Finite.copy vT v.
+Fail Check vT : finType.
+Check can_type (@VectorInternalTheory.v2rK K vT) : finType.
+Check can_type (@VectorInternalTheory.v2rK K vT) : vectType K.
+
+HB.instance Definition _ := Finite.copy vT (can_type (@VectorInternalTheory.v2rK K vT)).
+Fail Check vT : finType.
+
+Variable vt1 : vT.
+Check vt1 : v : finType.
+Fail Check vt1 : finType.
+Let vt2 := vt1 : v .
+Check vt2 : v : finType.
+
+End vT_finType.
 
 Lemma mxrank_sub_eqmx m n p (A : 'M[R]_(m,n)) (B : 'M[R]_(p,n)) :
   \rank A = \rank B -> (A <= B)%MS -> (A == B)%MS.
@@ -71,30 +97,39 @@ by exists P.
 Qed.
 
 End RoucheCapelliTheorems.
-Section FiniteFieldCounting.
+
+Section FiniteSolutionCounting.
+  
+(* Proving that if exists_nonzero_kernel in a finite domain,
+   the number of vectors satisify A *m X = 0 is (#| {:K} | ^ (n - \rank A))%N.
+*)
 
 Variable K : finFieldType.
 
-(* Test what type U actually has *)
-Lemma vspace_type_test n (U : {vspace 'cV[K]_n}) : 
-  True.
+
+(* Column span of a matrix, as a set of column vectors (boolean-quantified). *)
+Definition colspan m n (B : 'M[K]_(m, n)) : {set 'cV[K]_m} :=
+  [set x | [exists y : 'cV[K]_n, B *m y == x]].
+
+
+Lemma sub_coker m n (A : 'M[K]_(m, n)) :
+  forall x : 'cV[K]_n, x \in colspan (cokermx A) -> A *m x == 0.
 Proof.
-(* Let's see what U is *)
-(* Check if we can use #|U| at all *)
-Check #|U|.
-Check U.
-Check 'cV[K]_n.
-(* Test if 'cV[K]_n is actually a finType *)
-Check #|{: 'cV[K]_n}|.
+move => x.
+rewrite inE => /existsP [y /eqP Ey].
+move: Ey. move/eqP.
+rewrite eq_sym => /eqP ->.
+apply/eqP.
+by rewrite mulmxA mulmx_coker mul0mx.
+Qed.
+
+Lemma cardU_eq n (U : {vspace 'cV[K]_n}) :
+  #|U| = #|'rV[K]_(\dim U)|.
+Proof.
+About bij_card_image.
+Fail Check U : finType.
 Admitted.
 
-Lemma bij_card_image (aT rT : finType) (f : aT -> rT) (A : {set aT}) :
-  bijective f -> #|A| = #|f @: A|.
-Proof.
-move=> bij_f.
-have inj_f: injective f by apply: bij_inj.
-by rewrite card_in_imset // => x y _ _; apply: inj_f.
-Qed.
 
 (** 
  * Lemma: Cardinality of a Finite-Dimensional Vector Subspace
@@ -113,114 +148,17 @@ Qed.
 Lemma card_vspace_fin_helper n (U : {vspace 'cV[K]_n}) :
   #|U| = (#| {:K} | ^ (\dim U))%N.
 Proof.
-  (* 
-   * Step 1: Introduce the dimension variable
-   * 
-   * We start by introducing d as the dimension of the subspace U.
-   * This simplifies notation throughout the proof and makes the connection
-   * between the dimension and the exponent in our target formula explicit.
-   *)
   pose d := (\dim U).
-  
-  (* 
-   * Step 2: Define the coordinate mapping function
-   * 
-   * The function to_row maps each vector w in the subspace U to its coordinate 
-   * representation with respect to the basis of U. This is the key function 
-   * that will establish our bijection.
-   * 
-   * For any vector w in U, we can express it as a linear combination of the 
-   * basis vectors: w = Σᵢ cᵢ · bᵢ, where {bᵢ} is a basis for U.
-   * The function to_row extracts these coefficients (c₀, c₁, ..., c_{d-1}).
-   * 
-   * We need this function because it will be the core of our bijection
-   * between U and K^d, allowing us to count elements by counting coordinates.
-   *)
   pose to_row (w : subvs_of U) := \row_i coord (vbasis U) i (val w).
-  
-  (* 
-   * Step 3: Define the reconstruction function
-   * 
-   * The function sum_rw does the reverse operation: given a coordinate vector 
-   * (c₀, c₁, ..., c_{d-1}), it reconstructs the original vector in U by 
-   * computing the linear combination Σᵢ cᵢ · bᵢ.
-   * 
-   * This function is essential for proving that our mapping is surjective 
-   * (every coordinate vector corresponds to some vector in U).
-   * 
-   * We need this because it will be used to construct the inverse function
-   * that proves our mapping is bijective.
-   *)
   pose sum_rw (rw : 'rV_d) : 'cV[K]_n := \sum_i (rw ord0 i *: (vbasis U)`_i).
-  
-  (* 
-   * Step 4: Verify that reconstructed vectors belong to U
-   * 
-   * This step is crucial for ensuring that sum_rw actually maps into U.
-   * We need to prove that any linear combination of basis vectors of U 
-   * must itself belong to U, which follows from the definition of a subspace.
-   * 
-   * The proof uses the fact that U is closed under vector addition and 
-   * scalar multiplication, which are the defining properties of a subspace.
-   * 
-   * We need this because it allows us to safely construct the inverse
-   * mapping function that takes coordinate vectors back to elements of U.
-   *)
   have mem_sum_rw rw : sum_rw rw \in U.
     apply: memv_suml => j _.
     by apply: memvZ; apply: (vbasis_mem (U:=U)); apply: memt_nth.
-  
-  (* 
-   * Step 5: Define the inverse mapping function
-   * 
-   * The function from_row maps coordinate vectors back to elements of U.
-   * It uses sum_rw to reconstruct the vector and then wraps it in the 
-   * subtype subvs_of U to maintain type safety.
-   * 
-   * This function will be used to prove that to_row is injective and 
-   * to establish the bijection between U and K^d.
-   * 
-   * We need this because a bijection requires both a forward and backward
-   * mapping, and this provides the backward direction.
-   *)
   pose from_row (rw : 'rV_d) : subvs_of U := Sub (sum_rw rw) (mem_sum_rw rw).
-  
-  (* 
-   * Step 6: Prove the left inverse property
-   * 
-   * This step shows that from_row is a left inverse of to_row:
-   * for any coordinate vector rw, we have to_row(from_row(rw)) = rw.
-   * 
-   * This property is essential for proving injectivity of to_row and 
-   * establishing that our mapping preserves distinctness of elements.
-   * 
-   * The proof uses the fact that the basis is free (linearly independent)
-   * and that coordinate extraction is the inverse of reconstruction.
-   * 
-   * We need this because it's one of the two conditions required to
-   * prove that our functions form a bijection.
-   *)
   have to_from : forall rw, to_row (from_row rw) = rw.
     move=> rw; apply/rowP=> i; rewrite mxE.
     have -> : val (from_row rw) = sum_rw rw by [].
     by rewrite coord_sum_free ?(basis_free (vbasisP U)).
-  
-  (* 
-   * Step 7: Prove the right inverse property
-   * 
-   * This step shows that from_row is a right inverse of to_row:
-   * for any vector w in U, we have from_row(to_row(w)) = w.
-   * 
-   * This property is essential for proving surjectivity of to_row and 
-   * establishing that every element in U can be reached by our mapping.
-   * 
-   * The proof uses the coordinate representation theorem, which states
-   * that any vector can be uniquely expressed in terms of its coordinates
-   * with respect to a given basis.
-   * 
-   * We need this because it's the second condition required to prove
-   * that our functions form a bijection.
-   *)
   have from_to : forall w : subvs_of U, from_row (to_row w) = w.
     move=> w; apply/val_inj.
     rewrite /from_row /sum_rw /to_row /=.
@@ -228,66 +166,8 @@ Proof.
              = \sum_i (coord (vbasis U) i (val w)) *: (vbasis U)`_i.
       by apply: eq_bigr => i _; rewrite mxE.
     by rewrite (coord_vbasis (subvsP w)).
-  
-  (* 
-   * Step 8: Establish the bijection
-   * 
-   * Having proved both inverse properties, we can now conclude that 
-   * to_row is bijective. A function is bijective if and only if it 
-   * has both a left and right inverse.
-   * 
-   * This bijection is the core of our proof: it establishes a one-to-one 
-   * correspondence between the elements of U and the coordinate vectors in K^d.
-   * 
-   * We need this because bijective functions preserve cardinality, which
-   * is exactly what we need to prove #|U| = #|K^d|.
-   *)
   have bij_to_row : bijective to_row.
     by apply: (Bijective from_to to_from).
-  
-  (* 
-   * Step 9: Relate cardinalities via the bijection
-   * 
-   * This is the key step that connects our bijection to the cardinality 
-   * calculation. Since to_row is bijective, the domain and codomain 
-   * must have the same number of elements.
-   * 
-   * The domain consists of all vectors in U, which has cardinality #|U|.
-   * The codomain consists of all coordinate vectors in K^d, which has 
-   * cardinality #|K|^d by the fundamental counting principle.
-   * 
-   * Therefore, #|U| = #|K|^d = #|K|^(dim U).
-   * 
-   * We need this because it's the main result that connects the cardinality
-   * of U to the dimension and field size, which is exactly what we want to prove.
-   *)
-  have cardU_eq: #|U| = #|'rV[K]_d|.
-    (* The key insight: We have a bijection to_row : subvs_of U -> 'rV[K]_d.
-       Since 'cV[K]_n is finite and U is a subspace, the elements of U form a finite set.
-       We need to show that #|U| = #|'rV[K]_d| via this bijection.
-       
-       The challenge is that subvs_of U is not automatically recognized as a finType,
-       but we can work around this by using the bijection properties directly.
-    *)
-    (* Since to_row is bijective, we know that the domain and codomain have the same cardinality *)
-    (* The domain is the set of elements in subvs_of U, which corresponds to elements in U *)
-    (* The codomain is 'rV[K]_d *)
-    (* Therefore #|U| = #|'rV[K]_d| *)
-    admit. (* This step requires establishing that subvs_of U has the same cardinality as U *)
-  
-  (* 
-   * Final step: Complete the proof
-   * 
-   * We now have #|U| = #|'rV[K]_d|. The cardinality of 'rV[K]_d 
-   * is well-known to be #|K|^d, since each of the d coordinates can 
-   * independently take any value from K.
-   * 
-   * Substituting d = dim(U) and using the fact that #|K|^d = #|K|^(dim U),
-   * we obtain the desired result: #|U| = #|K|^(dim U).
-   * 
-   * We need this because it completes the proof by connecting our bijection
-   * result to the standard formula for matrix cardinality.
-   *)
   by rewrite cardU_eq card_mx /d mul1n.
 Qed.
 
@@ -309,4 +189,148 @@ rewrite kerE card_vspace_fin; congr (_ ^ _)%N.
 by rewrite dim_col mxrank_coker.
 Qed.
 
-End FiniteFieldCounting.
+(*
+Lemma kernel_cardinality_rank_nullity m n (A : 'M[K]_(m, n)) :
+  #| [set x : 'cV[K]_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
+Proof.
+  (* Use Gaussian elimination and change of coordinates *)
+  pose r := \rank A.
+  set L := col_ebase A.
+  set R := row_ebase A.
+  set P : 'M[K]_(m, n) := pid_mx r.
+
+  (* Matrix decomposition A = L * P * R *)
+  have defA : A = L *m P *m R by rewrite mulmx_ebase.
+  have UR : R \in unitmx by apply: row_ebase_unit.
+  have UL : L \in unitmx by apply: col_ebase_unit.
+
+  (* Define change of coordinates: x |-> R * x *)
+  pose f := (fun x : 'cV[K]_n => R *m x).
+
+  (* Show f is bijective *)
+  have bij_f : bijective f.
+    exists (fun z => invmx R *m z).
+      move=> x; rewrite mulmxA mulVmx ?mul1mx //; exact: UR.
+      move=> z; rewrite /f mulmxA mulmxV ?mul1mx //; exact: UR.
+
+  (* The kernel correspondence: A*x = 0 iff P*(R*x) = 0 *)
+  have ker_corr : forall x, (A *m x == 0) = (P *m (f x) == 0).
+    move=> x; apply/idP/idP.
+    (* Forward direction: A*x = 0 => P*(R*x) = 0 *)
+    - move/eqP => HAx0; apply/eqP.
+      have : invmx L *m (A *m x) = 0 by rewrite HAx0 mulmx0.
+      rewrite defA -!mulmxA (mulKmx UL) !mulmxA -/f.
+      by rewrite mulmxA.
+    (* Backward direction: P*(R*x) = 0 => A*x = 0 *)
+    - move/eqP => HPRx0; apply/eqP.
+      rewrite defA -!mulmxA HPRx0 mulmx0.
+      by rewrite mulmx0.
+
+  (* Define the kernel sets *)
+  set kerA := [set x : 'cV[K]_n | A *m x == 0].
+  set kerP := [set z : 'cV[K]_n | P *m z == 0].
+
+  (* Show that f maps kerA bijectively to kerP *)
+  have ker_bij : f @: kerA = kerP.
+    apply/setP => z; rewrite !inE; apply/idP/idP.
+    - move/imsetP => [x Hx ->]; rewrite -ker_corr.
+      by rewrite inE in Hx.
+    - move=> Hz; exists (f^-1 z).
+      + by rewrite ker_corr inE.
+      + by rewrite bij_can_eq //; exact: bij_f.
+
+  (* The kernel of P has size |K|^(n - r) *)
+  have kerP_card : #|kerP| = (#|{:K}| ^ (n - r))%N.
+    (* P = pid_mx r forces first r coordinates to be 0 *)
+    (* The last n-r coordinates are free *)
+    have -> : kerP = [set z : 'cV_n | [forall i : 'I_r, z i 0 == 0]].
+      apply/setP => z; rewrite !inE; apply/idP/idP.
+      - move/eqP => HPz0.
+        apply/forallP => i.
+        have : (P *m z) i 0 == 0 by rewrite HPz0 mxE.
+        rewrite pid_mx_row -rowE mxE.
+        case: (i < r)%N => //.
+        by rewrite ltn_ord.
+      - move/forallP => Hz0; apply/eqP/matrixP => i j.
+        rewrite pid_mx_row -rowE mxE.
+        case: (i < r)%N => //.
+        by rewrite (Hz0 (Ordinal (ltn_ord i))) mxE.
+
+    (* Now count the number of vectors with first r coordinates zero *)
+    have free_coords : (n - r)%N + r = n by rewrite subnK //; exact: rank_leq_col.
+    rewrite [X in _ = X]cardX => [|z]; last by rewrite !inE.
+    rewrite -free_coords big_split_ord /=.
+    rewrite [X in _ * X]cardX => [|z]; last by rewrite !inE forallP.
+    by rewrite !card_ord.
+
+  (* Apply bijection cardinality *)
+  by rewrite -ker_bij card_imset //; exact: bij_f.
+Qed.
+Lemma count_kernel_vectors_gaussian_elimination m n (A : 'M[K]_(m, n)) :
+  #| [set x : 'cV[K]_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
+Proof.
+(* Use Gaussian elimination: transform to echelon form *)
+pose r := \rank A.
+set L := col_ebase A.
+set R := row_ebase A.
+set P : 'M[K]_(m, n) := pid_mx r.
+(* The matrix decomposition A = L * P * R *)
+have defA : A = L *m P *m R by rewrite mulmx_ebase.
+(* Both L and R are invertible *)
+have Urow : row_ebase A \in unitmx by apply: row_ebase_unit.
+have Ucol : col_ebase A \in unitmx by apply: col_ebase_unit.
+
+have bij_row : bijective (fun x : 'cV[K]_n => row_ebase A *m x).
+  exists (fun z => invmx (row_ebase A) *m z).
+    move=> x; rewrite mulmxA mulVmx ?mul1mx //; exact: row_ebase_unit.
+  move=> z; rewrite mulmxA mulmxV ?mul1mx //; exact: row_ebase_unit.
+pose f := (fun x : 'cV[K]_n => row_ebase A *m x).
+pose Rset : {set 'cV[K]_n} := [set z : 'cV[K]_n | P *m z == 0].
+have foo : f @: S = Rset.
+
+have fS_eqR : f @: S = Rset.
+  apply/setP=> z; rewrite !inE; apply/idP/idP.
+  move/imsetP=> [x Hx ->].
+  rewrite inE in Hx.                 (* turn x \in S into A *m x == 0 *)
+  move/eqP: Hx => HAx0.              (* now HAx0 : A *m x = 0 *)
+  apply/eqP.                         (* goal becomes an equality *)
+  have H0 : invmx L *m (A *m x) = 0 by rewrite HAx0 mulmx0.
+  rewrite defA -!mulmxA (mulKmx Ucol) !mulmxA in H0.
+  rewrite mulmxA.
+  exact: H0.
+Abort.
+
+
+High-level goal: count solutions x to A x = 0 over finite field K.
+
+  Step 1
+   Let r = rank(A). Use the standard ebase factorization
+      A = L · P · R, where L = col_ebase A (invertible m×m),
+      R = row_ebase A (invertible n×n), and
+      P = pid_mx r (n×n projector onto the first r coordinates).
+  This is the Gaussian elimination decomposition mulmx_ebase.
+
+  Step 2:
+    Define the change-of-coordinates map f: x ↦ R x.
+    It’s a bijection because R is invertible (row_ebase_unit).
+    So counting x is equivalent to counting their images z = R x.
+
+  Step 3:
+    Show f maps the kernel of A exactly to the kernel of P. Using A = L P R:
+      A x = 0 iff L P R x = 0.
+    Since L is invertible, this is equivalent to P (R x) = 0.
+    Let z = R x; then the condition is P z = 0.
+    This establishes f @: S = { z | P z = 0 } where S = { x | A x = 0 }.
+
+  Step 4:
+    Conclude |S| = |{ z | P z = 0 }| by bijection/cardinality preservation.
+
+  Step 5:
+    Count solutions to P z = 0 when P = pid_mx r.
+    This projector forces the first r coordinates of z to be zero
+    while leaving the remaining n − r coordinates free.
+    Therefore the number of such z is |K|^(n − r).
+
+Final result: |{ x | A x = 0 }| = |K|^(n − rank(A)).
+*)
+End FiniteSolutionCounting.
