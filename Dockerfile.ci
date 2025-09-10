@@ -1,5 +1,5 @@
 # Dockerfile for Rocq CI builds
-FROM rocq/rocq-prover:9.0.0
+FROM rocq/rocq-prover:9.0.0 AS builder
 
 # Switch to root for system package installation
 USER root
@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y \
 # Switch back to rocq user for opam operations
 USER rocq
 
+# Set working directory
+WORKDIR /workspace
+
 # Copy opam file for dependency installation
 COPY rocq-rouche-capelli.opam .
 
@@ -19,8 +22,13 @@ COPY rocq-rouche-capelli.opam .
 RUN opam update -y && \
     opam install -y . --deps-only
 
-# Set working directory
-WORKDIR /workspace
+FROM builder AS runner
+
+COPY _CoqProject .
+COPY Makefile .
+RUN mkdir -p src
+COPY src/*.v /workspace/src/
+RUN make clean
 
 # Default command
-CMD ["bash"]
+CMD ["make", "all"]

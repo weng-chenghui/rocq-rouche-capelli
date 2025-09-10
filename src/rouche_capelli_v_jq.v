@@ -168,7 +168,7 @@ case: ifPn.
   rewrite mulVpmx; last by apply col_base_full.
   rewrite mulmx1.
   have HH : {in codom f & , injective f'}.
-    Fail apply (can_in_inj (g:=f)).
+    apply (can_in_inj (g:=f)).
     admit.
   apply (can_inj VectorInternalTheory.r2vK).
   apply HH.
