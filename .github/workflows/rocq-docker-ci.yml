@@ -37,7 +37,7 @@ jobs:
         context: .
         file: ./Dockerfile.ci
         push: false
-        tags: rocq-project:latest
+        tags: rocq-rouche-capelli:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
         load: true
@@ -47,7 +47,4 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}:/workspace \
           -w /workspace \
-          rocq-project:latest \
-          /bin/bash -c "
-              make clean && make -j\$(nproc)
-          "
+          rocq-rouche-capelli:latest
