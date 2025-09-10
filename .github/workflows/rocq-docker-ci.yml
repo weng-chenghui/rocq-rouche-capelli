@@ -47,15 +47,19 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}:/workspace \
           -w /workspace \
+          --user root \
           rocq-project:latest \
           /bin/bash -c "
-            # Build the project (dependencies already installed in Docker image)
-            make clean && \
-            make -j$(nproc) && \
-
-            # Verify compilation
-            echo 'Build completed successfully' && \
-            ls -la src/*.vo
+            # Fix permissions for the workspace
+            chown -R rocq:rocq /workspace
+            # Switch to rocq user and build
+            su rocq -c '
+              # Build the project (dependencies already installed in Docker image)
+              make clean && make -j$(nproc)
+              # Verify compilation
+              echo Build completed successfully
+              ls -la src/*.vo
+            '
           "
 
     - name: Run tests in container
@@ -63,12 +67,17 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}:/workspace \
           -w /workspace \
+          --user root \
           rocq-project:latest \
           /bin/bash -c "
-            # Check for any compilation errors
-            coqc --version && \
-            echo 'Rocq compilation successful' && \
-
-            # List compiled files
-            find src -name '*.vo' -type f
+            # Fix permissions for the workspace (if needed)
+            chown -R rocq:rocq /workspace
+            # Switch to rocq user and test
+            su rocq -c '
+              # Check for any compilation errors
+              coqc --version
+              echo Rocq compilation successful
+              # List compiled files
+              find src -name *.vo -type f
+            '
           "
