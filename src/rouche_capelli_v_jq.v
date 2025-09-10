@@ -169,7 +169,12 @@ case: ifPn.
   rewrite mulmx1.
   have HH : {in codom f & , injective f'}.
     apply (can_in_inj (g:=f)).
-    admit.
+    move => y /codomP [x ->].
+    rewrite /f' /f.
+    rewrite VectorInternalTheory.r2vK.
+    rewrite -[Ar]/(row_base A').
+    rewrite -[x *m row_base A' *m B]mulmxA.
+    by rewrite HB mulmx1.
   apply (can_inj VectorInternalTheory.r2vK).
   apply HH.
   - by rewrite VectorInternalTheory.v2rK.
@@ -192,7 +197,7 @@ rewrite -(mulmx_base A').
 rewrite mulmxA.
 apply (map_f f).
 by rewrite mem_enum.
-Admitted.
+Qed.
 
 (** 
  * Lemma: Cardinality of a Finite-Dimensional Vector Subspace
