@@ -1,0 +1,21 @@
+# Dockerfile for Rocq CI builds
+FROM rocq/rocq-prover:9.0.0
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy opam file for dependency installation
+COPY rocq-rouche-capelli.opam .
+
+# Install project dependencies using opam
+RUN opam update -y && \
+    opam install -y . --deps-only
+
+# Set working directory
+WORKDIR /workspace
+
+# Default command
+CMD ["bash"]
