@@ -1,14 +1,19 @@
 # Dockerfile for Rocq CI builds
 FROM rocq/rocq-prover:9.0.0
 
+# Switch to root for system package installation
+USER root
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+    git
 
 # Copy opam file for dependency installation
 COPY rocq-rouche-capelli.opam .
+
+# Switch back to rocq user for opam operations
+USER rocq
 
 # Install project dependencies using opam
 RUN opam update -y && \
