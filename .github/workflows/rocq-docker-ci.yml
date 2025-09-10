@@ -45,6 +45,5 @@ jobs:
     - name: Build project in container
       run: |
         docker run --rm \
-          -v ${{ github.workspace }}:/workspace \
           -w /workspace \
           rocq-rouche-capelli:latest
