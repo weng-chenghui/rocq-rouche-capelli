@@ -47,19 +47,8 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}:/workspace \
           -w /workspace \
-          --user root \
           rocq-project:latest \
           /bin/bash -c "
-            # Fix permissions for the workspace
-            chown -R rocq:rocq /workspace
-            # Initialize opam if needed and build
-            su - rocq -c '
-              # Check if opam is initialized, if not initialize it
-              if ! opam list > /dev/null 2>&1; then
-                echo \"Initializing opam...\"
-                opam init --disable-sandboxing -y
-                eval \$(opam env)
-              fi
               # Build the project (dependencies already installed in Docker image)
               make clean && make -j\$(nproc)
               # Verify compilation
@@ -73,19 +62,8 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}:/workspace \
           -w /workspace \
-          --user root \
           rocq-project:latest \
           /bin/bash -c "
-            # Fix permissions for the workspace (if needed)
-            chown -R rocq:rocq /workspace
-            # Initialize opam if needed and test
-            su - rocq -c '
-              # Check if opam is initialized, if not initialize it
-              if ! opam list > /dev/null 2>&1; then
-                echo \"Initializing opam...\"
-                opam init --disable-sandboxing -y
-                eval \$(opam env)
-              fi
               # Check for any compilation errors
               coqc --version
               echo Rocq compilation successful
