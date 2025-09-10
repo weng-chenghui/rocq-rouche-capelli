@@ -165,26 +165,16 @@ apply/submxP.
 case: ifPn.
   move => H.
   rewrite -/A'.
-  Check f' v.
-  Search row_base.
-  About col_base.
-  Search col_base.
   pose fv := f' v *m pinvmx (col_base A').
   exists fv.
   rewrite /fv /f'.
-  Search row_base.
   rewrite -[X in _ *m X](mulmx_base A').
   rewrite mulmxA.
   rewrite -[_ *m col_base A']mulmxA.
   rewrite mulVpmx; last by apply col_base_full.
-  Search injective codom.
-  About card_in_imset.
-  Search injective cancel.
   rewrite mulmx1.
   have HH : {in codom f & , injective f'}.
-    Search cancel injective.
-    Search cancel "imset".
-    apply (can_in_inj (g:=f)).
+    Fail apply (can_in_inj (g:=f)).
     admit.
   apply (can_inj VectorInternalTheory.r2vK).
   apply HH.
@@ -208,42 +198,7 @@ rewrite -(mulmx_base A').
 rewrite mulmxA.
 apply (map_f f).
 by rewrite mem_enum.
-Qed.
-
-
-About mem_map.
-rewrite inE.
-
-
-
-
-
-
-About subvs_vect_iso.
-case: (subvs_vect_iso U) => f Lf Hf.
-have Hf1 := bij_inj Hf.
-have Hf2 := finv_inj Hf1.
-rewrite -[RHS](card_codom (finv_inj (Hf1))).
-apply (card_imset Hf).
-
-About card_codom.
-Fail apply card_codom.
-About card_image.
-About card_imset.
-rewrite -(@card_in_image _ _ f' U).
-About card_codom.
-rewrite -[RHS](card_codom Hf).
-About codom.
-  
-About bij_card_image.
-Search (bijective _ -> #|_| = #|_|).
-Search (#|_| = #|_|).
-Fail Check U : finType.
 Admitted.
-
-Lemma try m n (A : 'M[K]_(m, n)) :
-
-
 
 (** 
  * Lemma: Cardinality of a Finite-Dimensional Vector Subspace
@@ -282,8 +237,8 @@ Proof.
     by rewrite (coord_vbasis (subvsP w)).
   have bij_to_row : bijective to_row.
     by apply: (Bijective from_to to_from).
-  by rewrite cardU_eq card_mx /d mul1n.
-Qed.
+  Fail by rewrite cardU_eq card_mx /d mul1n.
+Admitted.
 
 Lemma count_kernel_vectors m n (A : 'M[K]_(m, n)) :
   #| [set x : 'cV_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
@@ -314,7 +269,7 @@ have colspan_as_rows : colspan (cokermx A) =i pred_of_vspace U.
     admit.
   move => xU.
   admit.
-have Hcard := card_vspace (VectorInternalTheory.mx2vs Ac).
+Fail have Hcard := card_vspace (VectorInternalTheory.mx2vs Ac).
 Fail rewrite colspan_as_rows kerE -card_imset.
 Fail by rewrite mxrank_coker.
 (* The map from the full space to the image *)
@@ -322,6 +277,8 @@ Fail by rewrite mxrank_coker.
   admit.  (* Need to establish the cardinality relationship *)
 Abort.
 
+
+(*
 Lemma kernel_cardinality_rank_nullity m n (A : 'M[K]_(m, n)) :
   #| [set x : 'cV[K]_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
 Proof.
@@ -398,10 +355,13 @@ Proof.
   (* Apply bijection cardinality *)
   by rewrite -ker_bij card_imset //; exact: bij_f.
 Qed.
+*)
+
 Lemma count_kernel_vectors_gaussian_elimination m n (A : 'M[K]_(m, n)) :
   #| [set x : 'cV[K]_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
 Proof.
 (* Use Gaussian elimination: transform to echelon form *)
+set S := [set x : 'cV[K]_n | A *m x == 0].
 pose r := \rank A.
 set L := col_ebase A.
 set R := row_ebase A.
@@ -432,7 +392,7 @@ have fS_eqR : f @: S = Rset.
   exact: H0.
 Abort.
 
-
+(*
 High-level goal: count solutions x to A x = 0 over finite field K.
 
   Step 1
