@@ -105,7 +105,6 @@ Section FiniteSolutionCounting.
 
 Variable K : finFieldType.
 
-
 (* Column span of a matrix, as a set of column vectors (boolean-quantified). *)
 Definition colspan m n (B : 'M[K]_(m, n)) : {set 'cV[K]_m} :=
   [set x | [exists y : 'cV[K]_n, B *m y == x]].
