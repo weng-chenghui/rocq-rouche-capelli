@@ -49,6 +49,7 @@ jobs:
           -w /workspace \
           rocq-project:latest \
           /bin/bash -c "
+              ls -al /workspace
               # Build the project (dependencies already installed in Docker image)
               make clean && make -j\$(nproc)
               # Verify compilation

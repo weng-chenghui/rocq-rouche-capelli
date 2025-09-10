@@ -9,11 +9,11 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     git
 
-# Copy opam file for dependency installation
-COPY rocq-rouche-capelli.opam .
-
 # Switch back to rocq user for opam operations
 USER rocq
+
+# Copy opam file for dependency installation
+COPY rocq-rouche-capelli.opam .
 
 # Install project dependencies using opam
 RUN opam update -y && \
