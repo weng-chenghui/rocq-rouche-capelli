@@ -1,8 +1,8 @@
 opam-version: "2.0"
-name: "rocq-template"
+name: "rocq-rouche-capelli"
 version: "0.1.0"
-synopsis: "Minimal Rocq + MathComp template"
-maintainer: "Devin AI <devin-ai-integration[bot]@users.noreply.github.com>"
+synopsis: "A proof for the Rouché–Capelli theorem by rocq-math-comp"
+maintainer: "Chenghui Weng <144981080+weng-chenghui@users.noreply.github.com>"
 depends: [
   "ocaml" {>= "4.14.0"}
   "rocq-core" {= "9.0.0"}
@@ -12,6 +12,7 @@ depends: [
   "rocq-mathcomp-fingroup" {= "2.4.0"}
   "rocq-mathcomp-finmap" {>= "2.1.0"}
   "rocq-mathcomp-solvable" {= "2.4.0"}
+  "coq-mathcomp-classical" {= "1.13.0"}
 ]
 build: [
   ["coq_makefile" "-f" "_CoqProject" "-o" "Makefile.coq"]
