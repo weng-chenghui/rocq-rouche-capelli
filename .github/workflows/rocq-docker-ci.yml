@@ -52,10 +52,12 @@ jobs:
           /bin/bash -c "
             # Fix permissions for the workspace
             chown -R rocq:rocq /workspace
-            # Switch to rocq user and build
-            su rocq -c '
+            # Switch to rocq user and run with proper opam environment
+            su - rocq -c '
+              # Initialize opam environment
+              eval \$(opam env)
               # Build the project (dependencies already installed in Docker image)
-              make clean && make -j$(nproc)
+              make clean && make -j\$(nproc)
               # Verify compilation
               echo Build completed successfully
               ls -la src/*.vo
@@ -72,8 +74,10 @@ jobs:
           /bin/bash -c "
             # Fix permissions for the workspace (if needed)
             chown -R rocq:rocq /workspace
-            # Switch to rocq user and test
-            su rocq -c '
+            # Switch to rocq user and run with proper opam environment
+            su - rocq -c '
+              # Initialize opam environment
+              eval \$(opam env)
               # Check for any compilation errors
               coqc --version
               echo Rocq compilation successful

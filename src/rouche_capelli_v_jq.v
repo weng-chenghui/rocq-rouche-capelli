@@ -98,10 +98,10 @@ Qed.
 End RoucheCapelliTheorems.
 
 Section FiniteSolutionCounting.
-  
 (* Proving that if exists_nonzero_kernel in a finite domain,
    the number of vectors satisify A *m X = 0 is (#| {:K} | ^ (n - \rank A))%N.
 *)
+
 Variable K : finFieldType.
 
 (* Column span of a matrix, as a set of column vectors (boolean-quantified). *)
