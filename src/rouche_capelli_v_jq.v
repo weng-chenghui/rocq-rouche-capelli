@@ -1,14 +1,13 @@
 From HB Require Import structures.
-From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice.
-From mathcomp Require Import fintype finfun bigop finset fingroup perm order.
-From mathcomp Require Import div prime binomial ssralg finalg zmodp matrix.
-From mathcomp Require Import mxalgebra vector tuple finfield.
+From mathcomp Require Import all_ssreflect all_algebra.
+From mathcomp Require boolp.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Open Scope ring_scope.
+Import GRing.Theory.
 
 Section RoucheCapelliTheorems.
 
@@ -123,12 +122,127 @@ apply/eqP.
 by rewrite mulmxA mulmx_coker mul0mx.
 Qed.
 
-Lemma cardU_eq n (U : {vspace 'cV[K]_n}) :
+Lemma sub_kernel  m n (A : 'M[K]_(m, n)) :
+  forall x : 'cV[K]_n, A *m x == 0 -> x \in colspan (cokermx A).
+Proof.
+move => x.
+rewrite inE => /eqP [H].
+apply/existsP.
+exists x.
+apply/eqP.
+Search (cokermx).
+Admitted.
+
+About row_freeP.
+About mxrank.
+
+Lemma cardU_eq n (U : {vspace 'rV[K]_n}) :
   #|U| = #|'rV[K]_(\dim U)|.
 Proof.
+pose A' := VectorInternalTheory.vs2mx U.
+pose Ar := row_base A'.
+pose Ac := col_base A'.
+have Ha := eq_row_base A'.
+have Hd : dim 'rV[K]_n = n.
+  by rewrite dim_matrix -natr1E mul1r.
+pose f := fun v : 'rV[K]_(\dim U) => VectorInternalTheory.r2v (v *m Ar).
+have/row_freeP [B HB] := row_base_free A'.
+pose f' := fun v : 'rV[K]_n => (VectorInternalTheory.v2r v) *m B.
+have Hf : injective f.
+  apply (can_inj (g:=f')).
+  move => v1.
+  rewrite /f /f'.
+  rewrite VectorInternalTheory.r2vK.
+  rewrite -mulmxA.
+  rewrite HB.
+  by rewrite mulmx1.
+rewrite -[RHS](card_codom Hf).
+congr (#|_|).
+rewrite /pred_of_vspace.
+apply: boolp.funext => v /=.
+rewrite genmxE.
+apply/submxP.
+case: ifPn.
+  move => H.
+  rewrite -/A'.
+  Check f' v.
+  Search row_base.
+  About col_base.
+  Search col_base.
+  pose fv := f' v *m pinvmx (col_base A').
+  exists fv.
+  rewrite /fv /f'.
+  Search row_base.
+  rewrite -[X in _ *m X](mulmx_base A').
+  rewrite mulmxA.
+  rewrite -[_ *m col_base A']mulmxA.
+  rewrite mulVpmx; last by apply col_base_full.
+  Search injective codom.
+  About card_in_imset.
+  Search injective cancel.
+  rewrite mulmx1.
+  have HH : {in codom f & , injective f'}.
+    Search cancel injective.
+    Search cancel "imset".
+    apply (can_in_inj (g:=f)).
+    admit.
+  apply (can_inj VectorInternalTheory.r2vK).
+  apply HH.
+  - by rewrite VectorInternalTheory.v2rK.
+  - rewrite -/(f _).
+    apply map_f.
+    by rewrite mem_enum.
+  - rewrite /f'.
+    rewrite !VectorInternalTheory.r2vK.
+    rewrite -mulmxA.
+    by rewrite HB mulmx1.
+  Search "contra".
+apply contraNnot.
+case => w.
+move/(f_equal VectorInternalTheory.r2v).
+rewrite VectorInternalTheory.v2rK.
+move ->.
+rewrite /codom /=.
+rewrite -/A'.
+rewrite -(mulmx_base A').
+rewrite mulmxA.
+apply (map_f f).
+by rewrite mem_enum.
+Qed.
+
+
+About mem_map.
+rewrite inE.
+
+
+
+
+
+
+About subvs_vect_iso.
+case: (subvs_vect_iso U) => f Lf Hf.
+have Hf1 := bij_inj Hf.
+have Hf2 := finv_inj Hf1.
+rewrite -[RHS](card_codom (finv_inj (Hf1))).
+apply (card_imset Hf).
+
+About card_codom.
+Fail apply card_codom.
+About card_image.
+About card_imset.
+rewrite -(@card_in_image _ _ f' U).
+About card_codom.
+rewrite -[RHS](card_codom Hf).
+About codom.
+  
 About bij_card_image.
+Search (bijective _ -> #|_| = #|_|).
+Search (#|_| = #|_|).
 Fail Check U : finType.
 Admitted.
+
+Lemma try m n (A : 'M[K]_(m, n)) :
+
 
 
 (** 
@@ -175,21 +289,39 @@ Lemma count_kernel_vectors m n (A : 'M[K]_(m, n)) :
   #| [set x : 'cV_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
 Proof.
 pose S := [set x : 'cV_n | A *m x == 0].
-have sub_coker x : x \in colspan (cokermx A) -> A *m x == 0.
-  by case/colP=> y ->; rewrite -mulmxA mulmx_coker mul0mx.
 have sub_kernel x : A *m x == 0 -> x \in colspan (cokermx A).
-  move=> HAx0.
-  have /submxP [Y HY] : (x^T <= kermx A^T)%MS by apply: kernel_membership.
-  have hx : x = (kermx A^T)^T *m Y^T.
-    by move: HY; rewrite -trmxK trmx_mul trmx_tr.
-  rewrite hx /cokermx; exact/colP.
-have kerE : S = colspan (cokermx A).
-  apply/setP=> x; rewrite !inE; apply/idP/idP; [exact: sub_kernel | exact: sub_coker].
-rewrite kerE card_vspace_fin; congr (_ ^ _)%N.
-by rewrite dim_col mxrank_coker.
-Qed.
+  admit.
+have kerE : [set x : 'cV_n | A *m x == 0] = colspan (cokermx A).
+  - apply/setP=> x; rewrite !inE; apply/idP/idP.
+  move/(sub_kernel x) => Hx.
+  by rewrite inE in Hx.
+  - move/existsP => [y /eqP Hx].
+    by rewrite -Hx mulmxA mulmx_coker mul0mx.
+rewrite kerE.
+About card_vspace.
+have dim_cVn : dim 'cV[K]_n = n.
+  rewrite dim_matrix.
+  Fail rewrite muln1.
+  admit.
+symmetry in dim_cVn.
+pose Ac := castmx (erefl n, dim_cVn) ((cokermx A)^T).
+pose U := @VectorInternalTheory.mx2vs K 'cV_n n Ac.
+have colspan_as_rows : colspan (cokermx A) =i pred_of_vspace U.
+  move=> x.
+  rewrite inE.
+  apply/existsP/idP.
+    move => [y /eqP Hxy].
+    admit.
+  move => xU.
+  admit.
+have Hcard := card_vspace (VectorInternalTheory.mx2vs Ac).
+Fail rewrite colspan_as_rows kerE -card_imset.
+Fail by rewrite mxrank_coker.
+(* The map from the full space to the image *)
+  (* Since the kernel has the right dimension, the cardinality works out *)
+  admit.  (* Need to establish the cardinality relationship *)
+Abort.
 
-(*
 Lemma kernel_cardinality_rank_nullity m n (A : 'M[K]_(m, n)) :
   #| [set x : 'cV[K]_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
 Proof.
