@@ -133,9 +133,6 @@ apply/eqP.
 Search (cokermx).
 Admitted.
 
-About row_freeP.
-About mxrank.
-
 Lemma cardU_eq n (U : {vspace 'rV[K]_n}) :
   #|U| = #|'rV[K]_(\dim U)|.
 Proof.
