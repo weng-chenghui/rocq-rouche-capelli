@@ -52,10 +52,14 @@ jobs:
           /bin/bash -c "
             # Fix permissions for the workspace
             chown -R rocq:rocq /workspace
-            # Switch to rocq user and run with proper opam environment
+            # Initialize opam if needed and build
             su - rocq -c '
-              # Initialize opam environment
-              eval \$(opam env)
+              # Check if opam is initialized, if not initialize it
+              if ! opam list > /dev/null 2>&1; then
+                echo \"Initializing opam...\"
+                opam init --disable-sandboxing -y
+                eval \$(opam env)
+              fi
               # Build the project (dependencies already installed in Docker image)
               make clean && make -j\$(nproc)
               # Verify compilation
@@ -74,10 +78,14 @@ jobs:
           /bin/bash -c "
             # Fix permissions for the workspace (if needed)
             chown -R rocq:rocq /workspace
-            # Switch to rocq user and run with proper opam environment
+            # Initialize opam if needed and test
             su - rocq -c '
-              # Initialize opam environment
-              eval \$(opam env)
+              # Check if opam is initialized, if not initialize it
+              if ! opam list > /dev/null 2>&1; then
+                echo \"Initializing opam...\"
+                opam init --disable-sandboxing -y
+                eval \$(opam env)
+              fi
               # Check for any compilation errors
               coqc --version
               echo Rocq compilation successful
