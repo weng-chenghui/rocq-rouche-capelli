@@ -213,31 +213,31 @@ Qed.
  * The proof constructs an explicit bijection between the elements of U and 
  * the coordinate vectors in K^d, establishing the cardinality equality.
  *)
-Lemma card_vspace_fin_helper n (U : {vspace 'cV[K]_n}) :
+Lemma card_vspace_fin_helper n (U : {vspace 'rV[K]_n}) :
   #|U| = (#| {:K} | ^ (\dim U))%N.
 Proof.
   pose d := (\dim U).
-  pose to_row (w : subvs_of U) := \row_i coord (vbasis U) i (val w).
-  pose sum_rw (rw : 'rV_d) : 'cV[K]_n := \sum_i (rw ord0 i *: (vbasis U)`_i).
-  have mem_sum_rw rw : sum_rw rw \in U.
+  pose to_col (w : subvs_of U) := \col_i coord (vbasis U) i (val w).
+  pose sum_cw (cw : 'cV_d) : 'rV[K]_n := \sum_i (cw i ord0 *: (vbasis U)`_i).  
+  have mem_sum_cw cw : sum_cw cw \in U.
     apply: memv_suml => j _.
     by apply: memvZ; apply: (vbasis_mem (U:=U)); apply: memt_nth.
-  pose from_row (rw : 'rV_d) : subvs_of U := Sub (sum_rw rw) (mem_sum_rw rw).
-  have to_from : forall rw, to_row (from_row rw) = rw.
-    move=> rw; apply/rowP=> i; rewrite mxE.
-    have -> : val (from_row rw) = sum_rw rw by [].
+  pose from_col (cw : 'cV_d) : subvs_of U := Sub (sum_cw cw) (mem_sum_cw cw).
+  have to_from : forall cw, to_col (from_col cw) = cw.
+    move=> cw; apply/colP=> i; rewrite mxE.
+    have -> : val (from_col cw) = sum_cw cw by [].
     by rewrite coord_sum_free ?(basis_free (vbasisP U)).
-  have from_to : forall w : subvs_of U, from_row (to_row w) = w.
+  have from_to : forall w : subvs_of U, from_col (to_col w) = w.
     move=> w; apply/val_inj.
-    rewrite /from_row /sum_rw /to_row /=.
-    have -> : \sum_i (to_row w) ord0 i *: (vbasis U)`_i
-             = \sum_i (coord (vbasis U) i (val w)) *: (vbasis U)`_i.
-      by apply: eq_bigr => i _; rewrite mxE.
+    rewrite /from_col /sum_cw /to_col /=.
+    have -> : \sum_i (to_col w) i ord0 *: (vbasis U)`_i
+            = \sum_i coord (vbasis U) i (val w) *: (vbasis U)`_i.
+    by apply: eq_bigr => i _; rewrite mxE.
     by rewrite (coord_vbasis (subvsP w)).
-  have bij_to_row : bijective to_row.
+  have bij_to_col : bijective to_col.
     by apply: (Bijective from_to to_from).
-  Fail by rewrite cardU_eq card_mx /d mul1n.
-Admitted.
+  by rewrite cardU_eq card_mx /d mul1n.
+Qed.
 
 Lemma count_kernel_vectors m n (A : 'M[K]_(m, n)) :
   #| [set x : 'cV_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
