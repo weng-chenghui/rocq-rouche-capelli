@@ -107,8 +107,13 @@ Variable K : finFieldType.
 Definition colspan m n (B : 'M[K]_(m, n)) : {set 'cV[K]_m} :=
   [set x | [exists y : 'cV[K]_n, B *m y == x]].
 
+(* B a left-kernel as a basis to be spanned as the row space;
+   here it is used as a predicate on the row space.
+*)
+Definition rowspan m n (B : 'M[K]_(m, n)) : {set 'rV[K]_n} :=
+  [set x | [exists y : 'rV[K]_m, y *m B == x]].
 
-Lemma sub_coker m n (A : 'M[K]_(m, n)) :
+Lemma sub_coker_colspan m n (A : 'M[K]_(m, n)) :
   forall x : 'cV[K]_n, x \in colspan (cokermx A) -> A *m x == 0.
 Proof.
 move => x.
@@ -118,17 +123,6 @@ rewrite eq_sym => /eqP ->.
 apply/eqP.
 by rewrite mulmxA mulmx_coker mul0mx.
 Qed.
-
-Lemma sub_kernel  m n (A : 'M[K]_(m, n)) :
-  forall x : 'cV[K]_n, A *m x == 0 -> x \in colspan (cokermx A).
-Proof.
-move => x.
-rewrite inE => /eqP [H].
-apply/existsP.
-exists x.
-apply/eqP.
-Search (cokermx).
-Admitted.
 
 Lemma cardU_eq n (U : {vspace 'rV[K]_n}) :
   #|U| = #|'rV[K]_(\dim U)|.
@@ -239,10 +233,57 @@ Proof.
   by rewrite cardU_eq card_mx /d mul1n.
 Qed.
 
-Lemma count_kernel_vectors m n (A : 'M[K]_(m, n)) :
-  #| [set x : 'cV_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
+Lemma count_kernel_vectors_gaussian_elimination m n (A : 'M[K]_(m, n)) :
+  #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
 Proof.
-pose S := [set x : 'cV_n | A *m x == 0].
+(* Use Gaussian elimination: transform to echelon form *)
+set S := [set x : 'rV[K]_m | x *m A == 0].
+pose r := \rank A.
+set L := col_ebase A.
+set R := row_ebase A.
+set P : 'M[K]_(m, n) := pid_mx r.
+(* The matrix decomposition A = L * P * R *)
+have defA : A = L *m P *m R by rewrite mulmx_ebase.
+(* Both L and R are invertible *)
+have Urow : row_ebase A \in unitmx by apply: row_ebase_unit.
+have Ucol : col_ebase A \in unitmx by apply: col_ebase_unit.
+
+have bij_row : bijective (fun x : 'rV[K]_m => x *m col_ebase A).
+  exists (fun z => z *m invmx (col_ebase A)).
+    move => x.
+    rewrite -mulmxA [X in _ *m X]mulmxV.
+    by rewrite mulmx1.
+  exact: col_ebase_unit. 
+  move => z.
+  rewrite -mulmxA mulVmx.
+  by rewrite mulmx1.
+  exact: col_ebase_unit. 
+  
+pose f := (fun x : 'rV[K]_m => x *m col_ebase A).
+pose Rset : {set 'rV[K]_m} := [set z : 'rV[K]_m | z *m P == 0].
+have fS_eqR : f @: S = Rset.
+  apply/setP=> z; rewrite !inE; apply/idP/idP.
+  move/imsetP=> [x Hx ->].
+  rewrite inE in Hx.                 (* turn x \in S into A *m x == 0 *)
+  move/eqP: Hx => HAx0.              (* now HAx0 : A *m x = 0 *)
+  apply/eqP.                         (* goal becomes an equality *)
+  have H0 : (x *m A) *m invmx R = 0 by rewrite HAx0 mul0mx.
+  rewrite defA in H0.
+  rewrite -!mulmxA.
+  rewrite -/L.
+  rewrite -mulmxA in H0.
+  rewrite -[X in _ *m (X)]mulmxA in H0.
+  rewrite [X in _ *m (_ *m _ *m X)]mulmxV in H0.
+  rewrite mulmx1 in H0.
+  exact: H0.
+exact: row_ebase_unit.
+Abort.
+
+(*
+Lemma count_kernel_vectors m n (A : 'M[K]_(m, n)) :
+  #| [set x : 'rV_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
+Proof.
+pose S := [set x : 'rV_m | x *m A == 0].
 have sub_kernel x : A *m x == 0 -> x \in colspan (cokermx A).
   admit.
 have kerE : [set x : 'cV_n | A *m x == 0] = colspan (cokermx A).
@@ -276,7 +317,7 @@ Fail by rewrite mxrank_coker.
   admit.  (* Need to establish the cardinality relationship *)
 Abort.
 
-
+*)
 (*
 Lemma kernel_cardinality_rank_nullity m n (A : 'M[K]_(m, n)) :
   #| [set x : 'cV[K]_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
@@ -355,41 +396,6 @@ Proof.
   by rewrite -ker_bij card_imset //; exact: bij_f.
 Qed.
 *)
-
-Lemma count_kernel_vectors_gaussian_elimination m n (A : 'M[K]_(m, n)) :
-  #| [set x : 'cV[K]_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
-Proof.
-(* Use Gaussian elimination: transform to echelon form *)
-set S := [set x : 'cV[K]_n | A *m x == 0].
-pose r := \rank A.
-set L := col_ebase A.
-set R := row_ebase A.
-set P : 'M[K]_(m, n) := pid_mx r.
-(* The matrix decomposition A = L * P * R *)
-have defA : A = L *m P *m R by rewrite mulmx_ebase.
-(* Both L and R are invertible *)
-have Urow : row_ebase A \in unitmx by apply: row_ebase_unit.
-have Ucol : col_ebase A \in unitmx by apply: col_ebase_unit.
-
-have bij_row : bijective (fun x : 'cV[K]_n => row_ebase A *m x).
-  exists (fun z => invmx (row_ebase A) *m z).
-    move=> x; rewrite mulmxA mulVmx ?mul1mx //; exact: row_ebase_unit.
-  move=> z; rewrite mulmxA mulmxV ?mul1mx //; exact: row_ebase_unit.
-pose f := (fun x : 'cV[K]_n => row_ebase A *m x).
-pose Rset : {set 'cV[K]_n} := [set z : 'cV[K]_n | P *m z == 0].
-have foo : f @: S = Rset.
-
-have fS_eqR : f @: S = Rset.
-  apply/setP=> z; rewrite !inE; apply/idP/idP.
-  move/imsetP=> [x Hx ->].
-  rewrite inE in Hx.                 (* turn x \in S into A *m x == 0 *)
-  move/eqP: Hx => HAx0.              (* now HAx0 : A *m x = 0 *)
-  apply/eqP.                         (* goal becomes an equality *)
-  have H0 : invmx L *m (A *m x) = 0 by rewrite HAx0 mulmx0.
-  rewrite defA -!mulmxA (mulKmx Ucol) !mulmxA in H0.
-  rewrite mulmxA.
-  exact: H0.
-Abort.
 
 (*
 High-level goal: count solutions x to A x = 0 over finite field K.
