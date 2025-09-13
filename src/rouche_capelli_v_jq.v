@@ -302,48 +302,15 @@ have -> : #|SetAX0| = #|SetPX0|.
   rewrite -fSetAX0_eq_SetPX0 card_imset //.
   apply: bij_inj.
   exact: bij_row.
+have Hd : dim 'rV[K]_n = n.
+  by rewrite dim_matrix -natr1E mul1r.
+pose Pc := castmx (erefl, esym Hd) P.
+Check (@VectorInternalTheory.mx2vs K 'rV[K]_n m Pc).
 
-Abort.
+(* Construct the vector space from P. *)
+Local Open Scope nat_scope.
+Admitted.
 
-(*
-Lemma count_kernel_vectors m n (A : 'M[K]_(m, n)) :
-  #| [set x : 'rV_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
-Proof.
-pose S := [set x : 'rV_m | x *m A == 0].
-have sub_kernel x : A *m x == 0 -> x \in colspan (cokermx A).
-  admit.
-have kerE : [set x : 'cV_n | A *m x == 0] = colspan (cokermx A).
-  - apply/setP=> x; rewrite !inE; apply/idP/idP.
-  move/(sub_kernel x) => Hx.
-  by rewrite inE in Hx.
-  - move/existsP => [y /eqP Hx].
-    by rewrite -Hx mulmxA mulmx_coker mul0mx.
-rewrite kerE.
-About card_vspace.
-have dim_cVn : dim 'cV[K]_n = n.
-  rewrite dim_matrix.
-  Fail rewrite muln1.
-  admit.
-symmetry in dim_cVn.
-pose Ac := castmx (erefl n, dim_cVn) ((cokermx A)^T).
-pose U := @VectorInternalTheory.mx2vs K 'cV_n n Ac.
-have colspan_as_rows : colspan (cokermx A) =i pred_of_vspace U.
-  move=> x.
-  rewrite inE.
-  apply/existsP/idP.
-    move => [y /eqP Hxy].
-    admit.
-  move => xU.
-  admit.
-Fail have Hcard := card_vspace (VectorInternalTheory.mx2vs Ac).
-Fail rewrite colspan_as_rows kerE -card_imset.
-Fail by rewrite mxrank_coker.
-(* The map from the full space to the image *)
-  (* Since the kernel has the right dimension, the cardinality works out *)
-  admit.  (* Need to establish the cardinality relationship *)
-Abort.
-
-*)
 (*
 Lemma kernel_cardinality_rank_nullity m n (A : 'M[K]_(m, n)) :
   #| [set x : 'cV[K]_n | A *m x == 0] | = (#| {:K} | ^ (n - \rank A))%N.
