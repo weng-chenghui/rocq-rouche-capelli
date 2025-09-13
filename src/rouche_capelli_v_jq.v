@@ -302,13 +302,16 @@ have -> : #|SetAX0| = #|SetPX0|.
   rewrite -fSetAX0_eq_SetPX0 card_imset //.
   apply: bij_inj.
   exact: bij_row.
+
+(* Construct the vector space from P. *)
 have Hd : dim 'rV[K]_n = n.
   by rewrite dim_matrix -natr1E mul1r.
 pose Pc := castmx (erefl, esym Hd) P.
-Check (@VectorInternalTheory.mx2vs K 'rV[K]_n m Pc).
-
-(* Construct the vector space from P. *)
-Local Open Scope nat_scope.
+pose U := @VectorInternalTheory.mx2vs K 'rV[K]_n m Pc.
+have memU_bool (z : 'rV[K]_n) :
+  (z \in pred_of_vspace U) =
+    [exists y : 'rV[K]_m, y *m Pc == castmx (erefl, esym Hd) z].
+  admit.
 Admitted.
 
 (*
