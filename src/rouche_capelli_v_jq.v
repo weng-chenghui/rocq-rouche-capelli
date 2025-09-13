@@ -283,13 +283,10 @@ have fSetAX0_eq_SetPX0 : f @: SetAX0 = SetPX0.
   move => HzP0.
   pose x := z *m invmx L.
   have fx_eq_z : f x = z.
-    rewrite /f /x.
-    rewrite -mulmxA.
-    rewrite mulVmx; last by exact: Ucol.
+    rewrite /f /x -mulmxA mulVmx; last by exact: Ucol.
     by rewrite mulmx1.
   have x_in_SetAX0 : x \in SetAX0.
-    rewrite inE /x defA -mulmxA -mulmxA.
-    rewrite [X in _ *m X] mulmxA.
+    rewrite inE /x defA -mulmxA -mulmxA [X in _ *m X]mulmxA.
     rewrite mulVmx; last by exact: Ucol.
     rewrite mulmxA mulmx1 mulmxA.
     move: HzP0.
@@ -299,6 +296,13 @@ have fSetAX0_eq_SetPX0 : f @: SetAX0 = SetPX0.
   apply/imsetP.
   exists x; last by exact: (esym fx_eq_z).
   exact: x_in_SetAX0.
+
+(* Finally we alternate the set from A to P in cardinality measurance. *)
+have -> : #|SetAX0| = #|SetPX0|.
+  rewrite -fSetAX0_eq_SetPX0 card_imset //.
+  apply: bij_inj.
+  exact: bij_row.
+
 Abort.
 
 (*
