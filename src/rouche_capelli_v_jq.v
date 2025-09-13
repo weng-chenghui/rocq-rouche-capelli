@@ -237,7 +237,7 @@ Lemma count_kernel_vectors_gaussian_elimination m n (A : 'M[K]_(m, n)) :
   #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
 Proof.
 (* Use Gaussian elimination: transform to echelon form *)
-set S := [set x : 'rV[K]_m | x *m A == 0].
+set SetAX0 := [set x : 'rV[K]_m | x *m A == 0].
 pose r := \rank A.
 set L := col_ebase A.
 set R := row_ebase A.
@@ -260,8 +260,10 @@ have bij_row : bijective (fun x : 'rV[K]_m => x *m col_ebase A).
   exact: col_ebase_unit. 
   
 pose f := (fun x : 'rV[K]_m => x *m col_ebase A).
-pose Rset : {set 'rV[K]_m} := [set z : 'rV[K]_m | z *m P == 0].
-have fS_eqR : f @: S = Rset.
+pose SetPX0 : {set 'rV[K]_m} := [set z : 'rV[K]_m | z *m P == 0].
+(* "map" SetAX0 to SetPX0; "the image of set SetAX0 under function f". *)
+have fSetAX0_eq_SetPX0 : f @: SetAX0 = SetPX0.
+  (* Forward *)
   apply/setP=> z; rewrite !inE; apply/idP/idP.
   move/imsetP=> [x Hx ->].
   rewrite inE in Hx.                 (* turn x \in S into A *m x == 0 *)
@@ -273,10 +275,30 @@ have fS_eqR : f @: S = Rset.
   rewrite -/L.
   rewrite -mulmxA in H0.
   rewrite -[X in _ *m (X)]mulmxA in H0.
-  rewrite [X in _ *m (_ *m _ *m X)]mulmxV in H0.
+  rewrite [X in _ *m (_ *m _ *m X)]mulmxV in H0; last by exact: Urow.
   rewrite mulmx1 in H0.
   exact: H0.
-exact: row_ebase_unit.
+
+  (* Backward *)
+  move => HzP0.
+  pose x := z *m invmx L.
+  have fx_eq_z : f x = z.
+    rewrite /f /x.
+    rewrite -mulmxA.
+    rewrite mulVmx; last by exact: Ucol.
+    by rewrite mulmx1.
+  have x_in_SetAX0 : x \in SetAX0.
+    rewrite inE /x defA -mulmxA -mulmxA.
+    rewrite [X in _ *m X] mulmxA.
+    rewrite mulVmx; last by exact: Ucol.
+    rewrite mulmxA mulmx1 mulmxA.
+    move: HzP0.
+    move/eqP.
+    move => HzP0.
+    by rewrite HzP0 mul0mx.
+  apply/imsetP.
+  exists x; last by exact: (esym fx_eq_z).
+  exact: x_in_SetAX0.
 Abort.
 
 (*
