@@ -179,7 +179,6 @@ case: ifPn.
     rewrite !VectorInternalTheory.r2vK.
     rewrite -mulmxA.
     by rewrite HB mulmx1.
-  Search "contra".
 apply contraNnot.
 case => w.
 move/(f_equal VectorInternalTheory.r2v).
@@ -191,6 +190,16 @@ rewrite -(mulmx_base A').
 rewrite mulmxA.
 apply (map_f f).
 by rewrite mem_enum.
+Qed.
+
+Lemma submx_castmx m1 m2 n (A : 'M[K]_(m1, n)) (B : 'M[K]_(m2, n)) e :
+  (A <= B)%MS -> @submx.body K m1 m2 n A (castmx e B).
+Proof.
+move=> sAB.
+have HB := eqmx_cast B e.
+have /eqmxP HBb := HB.
+rewrite -(eqmxP HBb) in sAB.
+exact: sAB.
 Qed.
 
 (** 
@@ -304,14 +313,37 @@ have -> : #|SetAX0| = #|SetPX0|.
   exact: bij_row.
 
 (* Construct the vector space from P. *)
-have Hd : dim 'rV[K]_n = n.
+have Hd : dim 'rV[K]_m = m.
   by rewrite dim_matrix -natr1E mul1r.
-pose Pc := castmx (erefl, esym Hd) P.
-pose U := @VectorInternalTheory.mx2vs K 'rV[K]_n m Pc.
-have memU_bool (z : 'rV[K]_n) :
-  (z \in pred_of_vspace U) =
-    [exists y : 'rV[K]_m, y *m Pc == castmx (erefl, esym Hd) z].
-  admit.
+
+pose Pcker := castmx (erefl, esym Hd) (kermx P).
+pose Uker := @VectorInternalTheory.mx2vs K 'rV[K]_m m Pcker.
+have memUker_bool (z : 'rV[K]_m) :
+  (z \in pred_of_vspace Uker) = (z *m P == 0).
+  rewrite memvE /Uker /VectorInternalTheory.mx2vs /subsetv !genmxE.
+  rewrite /Pcker.
+
+  (* Fail because (m != dim 'rV_m) before castmx *)
+  Fail Check (VectorInternalTheory.v2r z <= (kermx P))%MS.
+  Check (VectorInternalTheory.v2r z <= castmx (erefl, esym Hd) (kermx P))%MS.
+  
+  (* Because of the Fail line, we cannot prove the later castmx version
+     by the simple kermx P version. Since the simple kermx P has the type issue
+     prevents the submx relation holds. As a result, we need to prove the
+     castmx version directly by submxP.
+  *)
+
+  (* TODO: Worth a sub-castmx lemma but dependent type looks troublesome. *)
+  have ->: (VectorInternalTheory.v2r z <= castmx (erefl, esym Hd) (kermx P))%MS.
+    Search submx.
+
+    Check (VectorInternalTheory.v2r z). (* 1 x m *)
+    Check castmx (erefl, esym Hd) (kermx P). (* 'M_(m, dim 'rV_m) *)
+    About submx_castmx. (* m1: 1, n: m = dim 'rV_m, m2: m, e : (erefl, esym Hd)*)
+    
+    have Hsub := @submx_castmx 1 (dim 'rV_m) (dim 'rV_m) (VectorInternalTheory.v2r z) (castmx (esym Hd, esym Hd) (kermx P)) (erefl, erefl).
+    Fail rewrite eqmx_cast.
+
 Admitted.
 
 (*
