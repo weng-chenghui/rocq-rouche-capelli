@@ -194,6 +194,7 @@ apply (map_f f).
 by rewrite mem_enum.
 Qed.
 
+
 Lemma submx_castmx m1 m2 n (A : 'M[K]_(m1, n)) (B : 'M[K]_(m2, n)) e :
   (A <= B)%MS -> @submx.body K m1 m2 n A (castmx e B).
 Proof.
