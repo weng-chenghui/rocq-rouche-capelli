@@ -97,6 +97,8 @@ Qed.
 
 End RoucheCapelliTheorems.
 
+Import passmx.
+
 Section FiniteSolutionCounting.
 (* Proving that if exists_nonzero_kernel in a finite domain,
    the number of vectors satisify A *m X = 0 is (#| {:K} | ^ (n - \rank A))%N.
@@ -250,6 +252,35 @@ Proof.
   subst p q.
   by rewrite !castmx_id.
 Qed.
+
+Section rVnpoly_npoly_rV.
+Variables (m n : nat) (A : 'M[K]_(m, n)).
+
+Check lker (Hom (A : 'M[K]_(_, _))).
+Check npoly K m : vectType K.
+Check lker (Hom A).
+Check lker (@Hom K {poly_m K} {poly_n K} A).
+
+Lemma rVnpolyK' : forall {R : nzRingType} [n : nat], cancel (@rVnpoly R n) poly_rV.
+Proof. by move=> *; exact: rVnpolyK. Qed.
+
+Lemma rVnpoly_is_linear : linear (@rVnpoly K m).
+move=> k /= u v.
+apply: (can_inj (@npoly_rV_K K m)).
+by rewrite rVnpolyK /npoly_rV linearP/= !rVnpolyK'.
+Qed.
+
+Lemma npoly_rV_is_linear : linear (@npoly_rV K m).
+Proof. by move=> k /= u v; rewrite /npoly_rV linearP. Qed.
+
+HB.instance Definition _ := GRing.isLinear.Build K _ _ _ _ rVnpoly_is_linear.
+HB.instance Definition _ := GRing.isLinear.Build K _ _ _ _ npoly_rV_is_linear.
+
+Goal : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
+Admitted.
+
+End rVnpoly_npoly_rV.
+
 
 Lemma count_kernel_vectors_gaussian_elimination m n (A : 'M[K]_(m, n)) :
   #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
