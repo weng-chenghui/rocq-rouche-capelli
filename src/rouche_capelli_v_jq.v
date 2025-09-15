@@ -278,6 +278,8 @@ have bij_row : bijective (fun x : 'rV[K]_m => x *m col_ebase A).
   exact: col_ebase_unit. 
   
 pose f := (fun x : 'rV[K]_m => x *m col_ebase A).
+
+(* The left-kernel of P. *)
 pose SetPX0 : {set 'rV[K]_m} := [set z : 'rV[K]_m | z *m P == 0].
 (* "map" SetAX0 to SetPX0; "the image of set SetAX0 under function f". *)
 have fSetAX0_eq_SetPX0 : f @: SetAX0 = SetPX0.
@@ -320,101 +322,91 @@ have -> : #|SetAX0| = #|SetPX0|.
   rewrite -fSetAX0_eq_SetPX0 card_imset //.
   apply: bij_inj.
   exact: bij_row.
+  
+(* Lemmas show that SetPX0 is a space (but still not a vspace...) *)
+have HSetPX0_exist0 : 0 \in SetPX0.
+  rewrite inE; apply/eqP; by rewrite mul0mx.
+have HSetPX0_cadd :
+  forall x y, x \in SetPX0 -> y \in SetPX0 -> (x + y) \in SetPX0.
+  move=> x y; rewrite !inE => /eqP Hx /eqP Hy.
+  apply/eqP; by rewrite mulmxDl Hx Hy addr0.
+have HSetPX0_cscale:
+  forall c x, x \in SetPX0 -> (c *: x) \in SetPX0.
+  move=> c x; rewrite !inE => /eqP Hx.
+  apply/eqP; by rewrite -scalemxAl Hx scaler0.
 
-(* Construct the vector space from P. *)
-have Hd : dim 'rV[K]_m = m.
-  by rewrite dim_matrix -natr1E mul1r.
 
-pose Pcker := castmx (erefl, esym Hd) (kermx P).
-pose Uker := @VectorInternalTheory.mx2vs K 'rV[K]_m m Pcker.
-have memUker_bool (z : 'rV[K]_m) :
-  (z \in pred_of_vspace Uker) = (z *m P == 0).
-  rewrite memvE /Uker /VectorInternalTheory.mx2vs /subsetv !genmxE.
-  (* The key insight: z \in span(Pcker) iff z is in kernel of P *)
-  apply/idP/idP.
-  - (* Forward: z in Uker -> z *m P = 0 *)
-    move/submxP => [w Hw].
-    apply/eqP.
-    (* VectorInternalTheory.v2r z = w *m Pcker *)
-    (* And Pcker = castmx (erefl, esym Hd) (kermx P) *)
-    (* So we need to show that elements of kermx P multiply with P to give 0 *)
-    have Hw' : z = VectorInternalTheory.r2v (w *m Pcker).
-      rewrite -Hw.
-      by rewrite VectorInternalTheory.v2rK.
-    rewrite Hw' /Pcker.
-    (* r2v (w *m castmx (erefl, esym Hd) (kermx P)) *m P = 0 *)
-    (* Convert cast matrix multiplication *)
-    have -> : VectorInternalTheory.r2v (w *m castmx (erefl, esym Hd) (kermx P)) =
-              VectorInternalTheory.r2v (castmx (erefl, esym Hd) (w *m kermx P)).
-      congr (VectorInternalTheory.r2v _).
-      have H := castmx_mul_row erefl (esym Hd) w (kermx P).
-      by rewrite castmx_id in H.
-    (* Now show that this equals 0 *)
-    suff: VectorInternalTheory.r2v (castmx (erefl, esym Hd) (w *m kermx P)) *m P = 0.
-      by [].
-    (* Elements from the kernel multiply to 0 *)
-    (* We have: VectorInternalTheory.r2v (castmx (erefl, esym Hd) (w *m kermx P)) *)
-    (* Since w *m kermx P is in the kernel, (w *m kermx P) *m P = 0 *)
-    have kern_zero : w *m kermx P *m P = 0 by rewrite -mulmxA mulmx_ker mulmx0.
-    (* We need to show: VectorInternalTheory.r2v (castmx (erefl, esym Hd) (w *m kermx P)) *m P = 0 *)
-    (* Since w *m Pcker is in the span of the kernel, it should multiply to 0 with P *)
-    (* First, let's understand what we have: *)
-    (* w *m Pcker = w *m castmx (erefl, esym Hd) (kermx P) *)
-    (* By our lemma: = castmx (erefl, esym Hd) (w *m kermx P) *)
-    (* But this assumes w *m kermx P is well-typed, which requires dimensional analysis *)
-    
-    (* Alternative approach: use the fact that Pcker consists of kernel vectors *)
-    (* Any linear combination of kernel vectors is still in the kernel *)
-    suff H: (w *m Pcker) *m castmx (esym Hd, erefl) P = 0.
-      move: H.
-      rewrite -[w *m Pcker]VectorInternalTheory.v2rK.
-      move/(f_equal (fun x => VectorInternalTheory.r2v x *m P)).
-      rewrite VectorInternalTheory.r2vK.
-      by rewrite castmxK.
-    
-    (* Now show that w *m Pcker *m castmx (esym Hd, erefl) P = 0 *)
-    rewrite /Pcker -mulmxA.
-    rewrite -(castmx_id (w *m castmx (erefl, esym Hd) (kermx P) *m castmx (esym Hd, erefl) P)).
-    (* This multiplication sequence doesn't simplify easily due to dimension issues *)
-    (* Let's admit this for now as it requires deeper analysis of the kernel structure *)
-    admit.
-  - (* Backward: z *m P = 0 -> z in Uker *)
-    move/eqP => HzP0.
-    apply/submxP.
-    (* z is in the kernel of P, so we can express it using the kernel basis *)
-    have : (VectorInternalTheory.v2r z <= kermx P)%MS.
-      apply/sub_kermxP.
-      (* Need to show P^T *m (v2r z)^T = 0 *)
-      have -> : P^T *m (VectorInternalTheory.v2r z)^T = 
-                castmx (erefl, erefl) (P^T *m (castmx (esym Hd, erefl) z)^T).
-        congr (_ *m _).
-        by rewrite /VectorInternalTheory.v2r castmx_tr.
-      rewrite castmx_mul castmx_tr -trmx_mul HzP0 trmx0.
-      by rewrite castmx0.
-    move/submxP => [c Hc].
-    exists c.
-    (* Show that VectorInternalTheory.v2r z = c *m Pcker *)
-    by rewrite /Pcker -Hc castmx_mul castmx_id.
-Qed.
+(* Then the difficulty comes:
 
-(* Now we can continue to count SetPX0 using the vector space structure *)
-have -> : SetPX0 = [set z : 'rV[K]_m | z \in Uker].
-  apply/setP => z.
-  by rewrite !inE memUker_bool.
+   Even though SetPX0 is already a vector space (since it is the left-kernel
+   of P), in math-comp there is no way to prove a set is a vector space.
 
-(* The cardinality of Uker is #|K|^dim(Uker) *)
-have dimUker : \dim Uker = (m - r)%N.
-  rewrite /Uker /VectorInternalTheory.mx2vs dim_genmx.
-  have -> : \rank Pcker = (m - r)%N.
-    rewrite /Pcker castmx_rank mxrank_ker.
-    have -> : \rank P = r.
-      by rewrite mxrank_diag; apply: eq_card => i; rewrite !inE ltn_ord.
-    by [].
-  by [].
+   However, spanning a vector space is the vector space itself,
+   so solution 1 is to prove:
 
-rewrite card_vspace_fin_helper dimUker.
-by rewrite /r.
-Qed.
+       #|SetPX0| = #|<<enum SetPX0>>%VS|.
+
+   This solution gets stuck because lack of lemmas about spans.
+   First, we don't have the lemma that states
+   "spanning a vector space is the vector space itself".
+
+   Second, while the proof context and the goal are:
+
+      v : 'rV_m
+      Hvspan : v \in <<enum SetPX0>>%VS
+      ============================
+      v *m P == 0
+
+   There is no lemma allows us to continue to show that Hvspan
+   guarantees `v *m P == 0`.
+
+ 
+   The second possible solution is to show there is a bijection
+   between SetPX0 and <<enum SetPX0>>%VS.
+
+
+   The final solution, is based on the fact that P is a pid matrix,
+   by measure how many non-zero row vectors in it, we get the dimension
+   of the vector space it spans. But this direct counting is also difficult
+   because all the ordinal number troubles.
+*)
+  
+(* FAILED: solution 1.
+
+have -> : #|SetPX0| = #|<<enum SetPX0>>%VS|.
+  have same_elements : forall v : 'rV_m, 
+    (v \in SetPX0) <-> (v \in <<enum SetPX0>>%VS).
+      move=> v; split.
+      - move => Hv.
+        apply: memv_span.
+        by rewrite mem_enum.
+      - move => Hvspan.
+        rewrite inE.
+        have Hc := coord_span Hvspan.
+*)
+
+(* FAILED: solution 2 *)
+(* Bijection between SetPX0 and <<enum SetPX0>>%VS *)
+have SetPX0_in_span : forall x, x \in SetPX0 -> x \in <<enum SetPX0>>%VS.
+  move=> x Hx.
+  apply: memv_span.
+  by rewrite mem_enum.
+
+have span_in_SetPX0 : forall x, x \in <<enum SetPX0>>%VS -> x \in SetPX0.
+  move=> x.
+  (* Use span_def to express as sum of lines *)
+  rewrite span_def.
+  (* Now x is in a sum of vlines *)
+  elim: (enum SetPX0) => [|v s IH].
+  - (* Empty case *)
+    rewrite big_nil memv0 => /eqP ->.
+    exact: HSetPX0_exist0.
+  - rewrite big_cons.
+    move/memv_addP => [[u Hu] [w Hw ->]].
+    apply: HSetPX0_cadd.
+    + move: Hu => /vlineP [c ->].
+      apply: HSetPX0_cscale.
+Abort.
 
 (*
 Lemma kernel_cardinality_rank_nullity m n (A : 'M[K]_(m, n)) :
