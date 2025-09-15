@@ -406,6 +406,64 @@ have span_in_SetPX0 : forall x, x \in <<enum SetPX0>>%VS -> x \in SetPX0.
     apply: HSetPX0_cadd.
     + move: Hu => /vlineP [c ->].
       apply: HSetPX0_cscale.
+      
+(* FAILED: solution 3 *)
+(* Directly counting vectors in SetPX0 *)
+(*
+(* Direct characterization of the left kernel of pid_mx *)
+(* For P = pid_mx r, z *m P = 0 iff the first r coordinates of z are 0 *)
+have le_rm : (r <= m)%N by apply: rank_leq_row.
+have SetPX0_char : SetPX0 = [set z : 'rV[K]_m | [forall i : 'I_r, z ord0 (widen_ord le_rm i) == 0]].
+  apply/setP => z; rewrite !inE; apply/idP/idP.
+  - (* Forward: z *m P = 0 -> first r coordinates of z are 0 *)
+    move/eqP => HzP0.
+    apply/forallP => i.
+    (* (z *m P)_{0,i} = sum_k z_{0,k} * P_{k,i} = z_{0,i} since P_{i,i} = 1 for i < r *)
+    have : (z *m P) ord0 i == 0 by rewrite HzP0 mxE.
+    rewrite mxE.
+    (* P = pid_mx r, so P_{k,j} = 1 if k=j<r, 0 otherwise *)
+    rewrite (bigD1 (widen_ord le_rm i)) //=.
+    rewrite pid_mx_el eq_refl (ltn_trans (ltn_ord i) le_rm) mul1r.
+    rewrite big1 ?addr0 //.
+    move=> k /negPf neq_ki.
+    by rewrite pid_mx_el neq_ki mul0r.
+  - (* Backward: first r coordinates of z are 0 -> z *m P = 0 *)
+    move/forallP => Hz0.
+    apply/eqP/matrixP => i j.
+    rewrite mxE.
+    (* Sum over k : z_{i,k} * P_{k,j} *)
+    case: (j < r)%N => [jr|].
+    + (* j < r: only P_{j,j} = 1, rest are 0 *)
+      have j_in_m : j < m by apply: (ltn_trans jr le_rm).
+      rewrite (bigD1 (Ordinal j_in_m)) //=.
+      rewrite pid_mx_el eq_refl jr mul1r.
+      have -> : z i (Ordinal j_in_m) = 0.
+        have j_in_r : j < r by [].
+        move: (Hz0 (Ordinal j_in_r)) => /eqP.
+        by rewrite -(inj_eq val_inj) /= widen_ord_proof.
+      rewrite mul0r add0r.
+      apply: big1 => k /negPf neq_kj.
+      by rewrite pid_mx_el neq_kj mul0r.
+    + (* j >= r: all P_{k,j} = 0 *)
+      apply: big1 => k _.
+      by rewrite pid_mx_el ltnNge negbK mul0r.
+
+(* Now count the cardinality of SetPX0 directly *)
+rewrite SetPX0_char.
+(* The set of vectors with first r coordinates = 0 has cardinality |K|^(m-r) *)
+(* This is because we're fixing r coordinates and leaving m-r free *)
+
+(* Define a bijection with 'rV[K]_(m-r) *)
+pose f (z : 'rV[K]_m | [forall i : 'I_r, z ord0 (widen_ord le_rm i) == 0]) : 'rV[K]_(m-r) :=
+  \row_j (val z) ord0 (rshift r j).
+pose g (w : 'rV[K]_(m-r)) : 'rV[K]_m :=
+  \row_j if (j < r)%N then 0 else w ord0 (Ordinal (ltn_sub j r (m-r) _)).
+
+(* Prove bijection and conclude *)
+(* ... technical details of bijection proof ... *)
+rewrite card_matrix mul1n.
+
+*)
 Abort.
 
 (*
