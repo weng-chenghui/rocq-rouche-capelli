@@ -277,7 +277,7 @@ Proof. by move=> k /= u v; rewrite /npoly_rV linearP. Qed.
 HB.instance Definition _ := GRing.isLinear.Build K _ _ _ _ rVnpoly_is_linear.
 HB.instance Definition _ := GRing.isLinear.Build K _ _ _ _ npoly_rV_is_linear.
 
-Goal : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
+Goal #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
 Admitted.
 
 End rVnpoly_npoly_rV.
