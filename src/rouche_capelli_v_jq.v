@@ -17,7 +17,7 @@ Section vT_finType.
 
 Variable K : finFieldType.
 Variable vT : vectType K.
-Definition v := can_type (@VectorInternalTheory.v2rK K vT).
+Let v := can_type (@VectorInternalTheory.v2rK K vT).
 Goal (can_type (@VectorInternalTheory.v2rK K vT)) = vT.
 reflexivity.
 Qed.
@@ -254,6 +254,95 @@ Proof.
   by rewrite !castmx_id.
 Qed.
 
+
+Section counting.
+
+Variables (m n : nat) (A : 'M[K]_(m, n)).
+
+Lemma lkerA_eq : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
+Admitted.
+
+Let f := fun v : 'rV[K]_m => v *m A. 
+Check linfun f.
+
+Lemma lker_eq : #|lker (linfun f)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
+Admitted.
+
+(* We cannot use it (internal)
+Lemma vs2mxF (vectTyp): VectorInternalTheory.vs2mx {:vT} = 1%:M.
+Proof. by rewrite /= genmx1. Qed.
+*)
+
+Lemma count_kernel_vectors :
+  #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
+Proof.
+rewrite -lker_eq.
+rewrite card_vspace_fin_helper.
+have := limg_ker_dim (linfun f) fullv.
+  rewrite (_ : (fullv :&: _)%VS = lker (linfun f)); last by apply/capv_idPr/subvf.
+  rewrite (_ : \dim fullv = m); last by rewrite dimvf /dim /= mul1n.
+  have ->: \dim (limg (linfun f)) = \rank A.
+    apply (size_basis (row_base A)).
+  About size_basis.
+  About limg_basis_of.
+    rewrite /lfun_img.
+    rewrite unlock /= /lfun_img_def.
+    rewrite /fullv.
+    rewrite {2}/VectorInternalTheory.mx2vs /=.
+    rewrite genmx1.
+    rewrite mul1mx.
+    have Hn : dim 'rV[K]_n = n.
+      by rewrite dim_matrix -natr1E mul1r.
+    have Hm : dim 'rV[K]_m = m.
+      by rewrite dim_matrix -natr1E mul1r.
+    have ->: VectorInternalTheory.f2mx (linfun f) = castmx (esym Hm, esym Hn) A.
+      rewrite /VectorInternalTheory.f2mx /linfun unlock /=.
+      apply/matrixP => i j.
+      rewrite castmxE /=.
+      rewrite !esymK.
+      rewrite !mxE.
+      rewrite /f /=.
+      rewrite /VectorInternalTheory.r2v /=.
+      rewrite /VectorInternalTheory.v2r /=.
+      
+
+(* To use basis...? *)
+
+      rewrite !mxE.
+      rewrite VectorInternalTheory.r2vK.
+      rewrite !mxE.
+
+
+    rewrite /VectorInternalTheory.mx2vs /=.
+    Search "rank".
+    Search .
+    Search "mx2vs".
+    
+
+    rewrite (VectorInternalTheory.mx2vsK (vT:='rV[K]_m)).
+    Search fullv.
+    Search lfun_img.
+    rewrite /limg.
+    Search "rank".
+    rewrite lfunE.
+
+Search "basis".
+rewrite (lker_ker (vbasisP fullv)).
+Search lker.
+About lker_ker.
+
+
+
+
+
+rewrite /lker.
+Search lker "dim".
+
+
+
+
+End couting.
+
 Section rVnpoly_npoly_rV.
 Variables (m n : nat) (A : 'M[K]_(m, n)).
 
@@ -277,10 +366,40 @@ Proof. by move=> k /= u v; rewrite /npoly_rV linearP. Qed.
 HB.instance Definition _ := GRing.isLinear.Build K _ _ _ _ rVnpoly_is_linear.
 HB.instance Definition _ := GRing.isLinear.Build K _ _ _ _ npoly_rV_is_linear.
 
-Goal #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
-Admitted.
 
+About lker.
+Check lker (Hom A) : {pred _}.
 End rVnpoly_npoly_rV.
+
+(*
+Section try.
+
+Variables (m n : nat) (A : 'M[K]_(m, n)).
+
+Goal forall v : 'rV[K]_m, (VectorInternalTheory.r2v v \in lker (Hom A)) = (v \in [set x : 'rV[K]_m | x *m A == 0]).
+move => v.
+rewrite memv_ker.
+rewrite [RHS]inE.
+
+
+About sub_kermx.
+rewrite /lker.
+rewrite [RHS]inE.
+rewrite -sub_kermx.
+About mem_
+About mv_ker.
+
+End try.
+
+*)
+
+About lkerA_eq.
+Check K.
+
+End FiniteSolutionCounting.
+
+Section counting.
+Variables (K : finFieldType).
 
 
 Lemma count_kernel_vectors_gaussian_elimination m n (A : 'M[K]_(m, n)) :
