@@ -8,36 +8,110 @@ Unset Printing Implicit Defensive.
 
 Open Scope ring_scope.
 Import GRing.Theory.
+Import VectorInternalTheory.
+(*Import passmx.*)
+
+HB.mixin Record isFinVector
+  (R : nzRingType) (V : Type) of Vector R V & Finite V := {}.
+
+#[short(type="finVectType")]
+HB.structure Definition FinVector
+  (R : nzRingType) := { V of isFinVector R V & }.
+
+Section card_vspace.
+Variable K : finFieldType.
+Variable fvT : finVectType K.
+
+HB.instance Definition _ m n := isFinVector.Build K 'M[K]_(m,n).
+(*HB.instance Definition _ := [Finite of {vspace fvT} by <:].*)
+HB.instance Definition _ (U : {vspace fvT}) := [Finite of subvs_of U by <:].
+HB.instance Definition _ (U : {vspace fvT}) := isFinVector.Build K (subvs_of U).
+
+Arguments v2r_inj {R vT}.
+
+Lemma card_vspace_helper (U : {vspace fvT}) :
+  #|U| = #|'rV[K]_(\dim U)|.
+Proof.
+transitivity #|[set val x | x in subvs_of U]|.
+  apply: eq_card => v /=.
+  apply/idP/idP; first by move/vsprojK<-; apply: imset_f.
+  by case/imsetP=> /= -[] u /= ? _ ->.
+transitivity #|[set v2r x | x in subvs_of U]|.
+  by rewrite !card_imset//; [exact: v2r_inj | exact: val_inj].
+apply: eq_card => /= r.
+rewrite !inE -/(is_true _).
+by rewrite -(r2vK r) mem_imset; last exact: v2r_inj.
+Qed.
+
+Lemma card_vspace (U : {vspace fvT}) :
+  #|U| = (#| {:K} | ^ (\dim U))%N.
+Proof. by rewrite card_vspace_helper card_mx mul1n. Qed.
+
+End card_vspace.
+
+(*
+#[short(type="finVectType")]
+HB.structure Definition FinVector (R : nzRingType) :=
+  { V of Vector R V & Finite V }.
+
+Module FVT.
+Section def.
+Variables (R : finNzRingType) (vT : vectType R).
+
+HB.instance Definition _ := CanIsCountable (@v2rK R vT).
+
+Definition t_subproof : @FinVector.axioms_ R vT.
+apply: FinVector.Class.
+- have @ax := CanIsCountable (@v2rK R vT).
+  econstructor.
+  exact: (isCountable.pickleK ax).
+- by econstructor; apply vector_subdef.
+- exact: (CanIsFinite (@v2rK R vT)).
+Defined.
+Definition t := HB.pack_for (finVectType R) vT t_subproof.
+Succeed Definition test :=  t : finVectType _.
+End def.
+End FVT.
+
+Section card_vspace.
+Variable K : finFieldType.
+Variable vT : vectType K.
+(*Local Notation fvT := (can_type (@v2rK K vT)).*)
+(*Definition fvT := (can_type (@v2rK K vT)).*)
+Local Notation fvT := (FVT.t vT).
+
+(*HB.instance Definition _ := [Finite of {vspace fvT} by <:].*)
+HB.instance Definition _ (U : {vspace fvT}) := [Finite of subvs_of U by <:].
+
+Arguments v2r_inj {R vT}.
+
+Lemma card_vspace_helper (U : {vspace fvT}) :
+  #|U : {pred fvT}| = #|'rV[K]_(\dim U)|.
+Proof.
+set UU := (U : {pred fvT}).
+transitivity #|[set val x | x in subvs_of U]|.
+  apply: eq_card => v /=.
+  apply/idP/idP; first by move/vsprojK<-; apply: imset_f.
+  by case/imsetP=> /= -[] u /= ? _ ->.
+transitivity #|[set v2r x | x in subvs_of U]|.
+  by rewrite !card_imset//; [exact: v2r_inj | exact: val_inj].
+apply: eq_card => /= r.
+rewrite !inE -/(is_true _).
+by rewrite -(r2vK r) mem_imset; last exact: v2r_inj.
+Qed.
+
+Lemma card_vspace (U : {vspace fvT}) :
+  #|U : {pred fvT}| = (#| {:K} | ^ (\dim U))%N.
+Proof. by rewrite card_vspace_helper card_mx mul1n. Qed.
+
+End card_vspace.
+*)
+
+
 
 Section RoucheCapelliTheorems.
 
 Variable R : fieldType.
-
-Section vT_finType.
-
-Variable K : finFieldType.
-Variable vT : vectType K.
-Let v := can_type (@VectorInternalTheory.v2rK K vT).
-Goal (can_type (@VectorInternalTheory.v2rK K vT)) = vT.
-reflexivity.
-Qed.
-
-Check v : finType.
-HB.instance Definition _ := Finite.copy vT v.
-Fail Check vT : finType.
-Check can_type (@VectorInternalTheory.v2rK K vT) : finType.
-Check can_type (@VectorInternalTheory.v2rK K vT) : vectType K.
-
-HB.instance Definition _ := Finite.copy vT (can_type (@VectorInternalTheory.v2rK K vT)).
-Fail Check vT : finType.
-
-Variable vt1 : vT.
-Check vt1 : v : finType.
-Fail Check vt1 : finType.
-Let vt2 := vt1 : v .
-Check vt2 : v : finType.
-
-End vT_finType.
 
 Lemma mxrank_sub_eqmx m n p (A : 'M[R]_(m,n)) (B : 'M[R]_(p,n)) :
   \rank A = \rank B -> (A <= B)%MS -> (A == B)%MS.
@@ -97,13 +171,12 @@ Qed.
 
 End RoucheCapelliTheorems.
 
-Import passmx.
-
 Section FiniteSolutionCounting.
 (* Proving that if exists_nonzero_kernel in a finite domain,
    the number of vectors satisify A *m X = 0 is (#| {:K} | ^ (n - \rank A))%N.
 *)
 Variable K : finFieldType.
+Variable vT : vectType K.
 
 (* Column span of a matrix, as a set of column vectors (boolean-quantified). *)
 Definition colspan m n (B : 'M[K]_(m, n)) : {set 'cV[K]_m} :=
@@ -126,72 +199,24 @@ apply/eqP.
 by rewrite mulmxA mulmx_coker mul0mx.
 Qed.
 
-Lemma cardU_eq n (U : {vspace 'rV[K]_n}) :
+Unset Printing Notations.
+HB.saturate matrix.
+HB.about matrix.
+Check 'rV[K]__ : vectType _.
+Check 'rV[K]__ : finType.
+
+HB.saturate matrix.
+HB.about 'rV[K]_ 5 : finVectType K.
+Check 'rV[K]__ : finVectType _.
+
+Lemma card_vspace_helper_rV n (U : {vspace 'rV[K]_n}) :
   #|U| = #|'rV[K]_(\dim U)|.
 Proof.
-pose A' := VectorInternalTheory.vs2mx U.
-pose Ar := row_base A'.
-pose Ac := col_base A'.
-have Ha := eq_row_base A'.
-have Hd : dim 'rV[K]_n = n.
-  by rewrite dim_matrix -natr1E mul1r.
-pose f := fun v : 'rV[K]_(\dim U) => VectorInternalTheory.r2v (v *m Ar).
-have/row_freeP [B HB] := row_base_free A'.
-pose f' := fun v : 'rV[K]_n => (VectorInternalTheory.v2r v) *m B.
-have Hf : injective f.
-  apply (can_inj (g:=f')).
-  move => v1.
-  rewrite /f /f'.
-  rewrite VectorInternalTheory.r2vK.
-  rewrite -mulmxA.
-  rewrite HB.
-  by rewrite mulmx1.
-rewrite -[RHS](card_codom Hf).
-congr (#|_|).
-rewrite /pred_of_vspace.
-apply: boolp.funext => v /=.
-rewrite genmxE.
-apply/submxP.
-case: ifPn.
-  move => H.
-  rewrite -/A'.
-  pose fv := f' v *m pinvmx (col_base A').
-  exists fv.
-  rewrite /fv /f'.
-  rewrite -[X in _ *m X](mulmx_base A').
-  rewrite mulmxA.
-  rewrite -[_ *m col_base A']mulmxA.
-  rewrite mulVpmx; last by apply col_base_full.
-  rewrite mulmx1.
-  have HH : {in codom f & , injective f'}.
-    apply (can_in_inj (g:=f)).
-    move => y /codomP [x ->].
-    rewrite /f' /f.
-    rewrite VectorInternalTheory.r2vK.
-    rewrite -[Ar]/(row_base A').
-    rewrite -[x *m row_base A' *m B]mulmxA.
-    by rewrite HB mulmx1.
-  apply (can_inj VectorInternalTheory.r2vK).
-  apply HH.
-  - by rewrite VectorInternalTheory.v2rK.
-  - rewrite -/(f _).
-    apply map_f.
-    by rewrite mem_enum.
-  - rewrite /f'.
-    rewrite !VectorInternalTheory.r2vK.
-    rewrite -mulmxA.
-    by rewrite HB mulmx1.
-apply contraNnot.
-case => w.
-move/(f_equal VectorInternalTheory.r2v).
-rewrite VectorInternalTheory.v2rK.
-move ->.
-rewrite /codom /=.
-rewrite -/A'.
-rewrite -(mulmx_base A').
-rewrite mulmxA.
-apply (map_f f).
-by rewrite mem_enum.
+move: U; rewrite (_ : 'rV[K]_n = FVT.t 'rV[K]_n) // => U.
+rewrite (_ : #|U| = #|U : {pred FVT.t 'rV_n}|).
+  by rewrite card_vspace_helper.
+case: U=> /= mx prf.
+Set Printing All.
 Qed.
 
 
@@ -324,6 +349,7 @@ End couting.
 Section rVnpoly_npoly_rV.
 Variables (m n : nat) (A : 'M[K]_(m, n)).
 
+(*
 Check lker (Hom (A : 'M[K]_(_, _))).
 Check npoly K m : vectType K.
 Check lker (Hom A).
@@ -343,7 +369,38 @@ Proof. by move=> k /= u v; rewrite /npoly_rV linearP. Qed.
 
 HB.instance Definition _ := GRing.isLinear.Build K _ _ _ _ rVnpoly_is_linear.
 HB.instance Definition _ := GRing.isLinear.Build K _ _ _ _ npoly_rV_is_linear.
+*)
 
+
+(*
+Require Import FunctionalExtensionality.
+Lemma linfunK : forall {R : nzRingType} {aT rT : vectType R} (f : {linear aT -> rT}),
+    @fun_of_lfun R aT rT (@linfun R aT rT f) = f.
+Proof.
+move=> R aT rT f.
+rewrite /fun_of_lfun locked_withE /fun_of_lfun_def.
+rewrite /linfun locked_withE /linfun_def/=.
+apply: functional_extensionality => a/=.
+by rewrite mul_rV_lin1/= !v2rK.
+Qed.
+*)
+
+Lemma card_lker : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
+Proof.
+rewrite -[in LHS]cardsE.
+have/card_imset<-/= := (can_inj (@v2rK K {poly_m K})).
+apply: eq_card=> /= r.
+rewrite -[in LHS](r2vK r) mem_imset; last exact: v2r_inj.
+rewrite !inE memv_ker.
+rewrite -[LHS](inj_eq (@v2r_inj _ _)) linear0.
+congr (_ == 0).
+by rewrite /fun_of_lfun/= locked_withE/= /fun_of_lfun_def/= !r2vK.
+Qed.
+
+Lemma count_kernel_vectors_gaussian_elimination' :
+  #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
+Proof.
+rewrite -card_lker.
 
 About lker.
 Check lker (Hom A) : {pred _}.
@@ -708,3 +765,51 @@ High-level goal: count solutions x to A x = 0 over finite field K.
 Final result: |{ x | A x = 0 }| = |K|^(n − rank(A)).
 *)
 End FiniteSolutionCounting.
+
+(*
+Module vT_finType_experiment.
+Section vT_finType.
+
+Variable K : finFieldType.
+Variable vT : vectType K.
+
+Definition v := can_type (@VectorInternalTheory.v2rK K vT).
+Goal (can_type (@VectorInternalTheory.v2rK K vT)) = vT.
+reflexivity.
+Qed.
+
+Check v : finType.
+Check v : vectType K.
+HB.instance Definition _ := Finite.on v.
+HB.about vectType.
+HB.about v.
+HB.instance Definition _ := Vector.copy v vT.
+HB.about finVectType.
+HB.about v.
+Fail Check v : finVectType K.
+Fail HB.instance Definition _ := FinVector.on v.
+
+
+HB.instance Definition _ := Finite.copy vT v.
+Fail Check vT : finType.
+Check can_type (@VectorInternalTheory.v2rK K vT) : finType.
+Check can_type (@VectorInternalTheory.v2rK K vT) : vectType K.
+
+HB.instance Definition _ := Finite.copy vT (can_type (@VectorInternalTheory.v2rK K vT)).
+Fail Check vT : finType.
+
+Variable vt1 : vT.
+Check vt1 : v : finType.
+Fail Check vt1 : finType.
+Let vt2 := vt1 : v .
+Check vt2 : v : finType.
+
+(*HB.instance Definition _ := [Finite of {vspace vT} by <:].*)
+
+Variable s : {vspace v}.
+Fail Check #|s|.
+Check #|s : {pred v}|.
+
+End vT_finType.
+End vT_finType_experiment.
+*)
