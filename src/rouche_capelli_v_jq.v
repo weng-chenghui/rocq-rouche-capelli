@@ -262,8 +262,7 @@ Variables (m n : nat) (A : 'M[K]_(m, n)).
 Lemma lkerA_eq : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
 Admitted.
 
-Let f := fun v : 'rV[K]_m => v *m A. 
-Check linfun f.
+Let f := mulmx (m:=1) ^~ A.
 
 Lemma lker_eq : #|lker (linfun f)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
 Admitted.
@@ -273,74 +272,59 @@ Lemma vs2mxF (vectTyp): VectorInternalTheory.vs2mx {:vT} = 1%:M.
 Proof. by rewrite /= genmx1. Qed.
 *)
 
+Lemma cancel_row_free p (g h : {linear 'rV[K]_p -> 'rV[K]_p}) :
+  cancel g h -> row_free (lin1_mx g).
+Proof.
+move=> gh.
+apply/row_freeP.
+exists (lin1_mx h).
+rewrite -[lin1_mx g]mul1mx.
+apply/row_matrixP => i.
+by rewrite !row_mul !mul_rV_lin1 /= gh.
+Qed.
+
+Let linearf : linear f.
+Proof. by move=> x y z; rewrite /f mulmxDl -scalemxAl /=. Qed.
+
+HB.instance Definition _ := GRing.isSemilinear.Build K _ _ _ f
+  (GRing.semilinear_linear linearf).
+
+
 Lemma count_kernel_vectors :
   #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
 Proof.
+Import VectorInternalTheory.
 rewrite -lker_eq.
 rewrite card_vspace_fin_helper.
 have := limg_ker_dim (linfun f) fullv.
-  rewrite (_ : (fullv :&: _)%VS = lker (linfun f)); last by apply/capv_idPr/subvf.
-  rewrite (_ : \dim fullv = m); last by rewrite dimvf /dim /= mul1n.
-  have ->: \dim (limg (linfun f)) = \rank A.
-    apply (size_basis (row_base A)).
-  About size_basis.
-  About limg_basis_of.
-    rewrite /lfun_img.
-    rewrite unlock /= /lfun_img_def.
-    rewrite /fullv.
-    rewrite {2}/VectorInternalTheory.mx2vs /=.
-    rewrite genmx1.
-    rewrite mul1mx.
-    have Hn : dim 'rV[K]_n = n.
-      by rewrite dim_matrix -natr1E mul1r.
-    have Hm : dim 'rV[K]_m = m.
-      by rewrite dim_matrix -natr1E mul1r.
-    have ->: VectorInternalTheory.f2mx (linfun f) = castmx (esym Hm, esym Hn) A.
-      rewrite /VectorInternalTheory.f2mx /linfun unlock /=.
-      apply/matrixP => i j.
-      rewrite castmxE /=.
-      rewrite !esymK.
-      rewrite !mxE.
-      rewrite /f /=.
-      rewrite /VectorInternalTheory.r2v /=.
-      rewrite /VectorInternalTheory.v2r /=.
-      
-
-(* To use basis...? *)
-
-      rewrite !mxE.
-      rewrite VectorInternalTheory.r2vK.
-      rewrite !mxE.
-
-
-    rewrite /VectorInternalTheory.mx2vs /=.
-    Search "rank".
-    Search .
-    Search "mx2vs".
-    
-
-    rewrite (VectorInternalTheory.mx2vsK (vT:='rV[K]_m)).
-    Search fullv.
-    Search lfun_img.
-    rewrite /limg.
-    Search "rank".
-    rewrite lfunE.
-
-Search "basis".
-rewrite (lker_ker (vbasisP fullv)).
-Search lker.
-About lker_ker.
-
-
-
-
-
-rewrite /lker.
-Search lker "dim".
-
-
-
-
+rewrite (_ : (fullv :&: _)%VS = lker (linfun f)); last by apply/capv_idPr/subvf.
+rewrite (_ : \dim fullv = m); last by rewrite dimvf /dim /= mul1n.
+suff -> : \dim (limg (linfun f)) = \rank (lin1_mx r2v *m A *m lin1_mx v2r).
+  move/(f_equal (subn^~ (\rank A))).
+  rewrite mxrankMfree.
+    rewrite -mxrank_tr trmx_mul mxrankMfree.
+      by rewrite mxrank_tr addnK => ->.
+    apply/row_freeP.
+    exists (lin1_mx v2r)^T.
+    rewrite -trmx_mul.
+    apply/trmx_inj.
+    rewrite trmxK trmx1 -[lin1_mx v2r]mul1mx.
+    apply/row_matrixP => i.
+    by rewrite !row_mul !mul_rV_lin1 /= v2rK.
+  apply/row_freeP.
+  exists (lin1_mx r2v).
+  rewrite -[lin1_mx v2r]mul1mx.
+  apply/row_matrixP => i.
+  by rewrite !row_mul !mul_rV_lin1 /= v2rK.
+rewrite /lfun_img unlock /= /lfun_img_def.
+rewrite /fullv {2}/mx2vs /= genmx1 mul1mx.
+rewrite /dimv mx2vsK.
+congr mxrank.
+rewrite -[LHS]mul1mx -[RHS]mul1mx.
+apply/row_matrixP => i.
+rewrite !row_mul !mulmxA !mul_rV_lin1 /=.
+by rewrite /f2mx unlock mul_rV_lin1.
+Qed.
 End couting.
 
 Section rVnpoly_npoly_rV.
