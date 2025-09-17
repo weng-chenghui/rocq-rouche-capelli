@@ -245,54 +245,19 @@ Lemma limg_lker : forall {K : fieldType} {aT rT : vectType K} (f : 'Hom(aT, rT))
     (f @: lker f = 0)%VS.
 Proof. by move=> ? ? ? ?; rewrite -limg_ker_compl diffvv limg0. Qed.
 
-Lemma count_kernel_vectors :
-  #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
-Proof.
-rewrite -card_lker_mulmx card_vspace.
-congr (_ ^ _)%N.
-rewrite -mxrank_ker -(mx2vsK (kermx A)) -/(dimv _).
-Abort.
+Lemma HomK : forall {R : nzRingType} {vT wT : vectType R} (A : 'M_(dim vT, dim wT)),
+    f2mx (Hom A) = A.
+Proof. by []. Qed.
 
 Lemma count_kernel_vectors :
   #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
 Proof.
-rewrite -card_lker_mulmx card_vspace.
-congr (_ ^ _)%N.
-set f := (f in lker f).
-apply/eqP; rewrite -(@eqn_add2r (\rank A)) subnK ?rank_leq_row//.
-have := limg_ker_dim (linfun f) fullv.
-rewrite fun_of_lfunK capfv dimvf dim_matrix mul1r.
-suff->: \dim (limg f) = \rank A by move->.
-rewrite /dimv /(limg _) locked_withE /lfun_img_def.
-rewrite mx2vsK/= genmx1 mul1mx.
-rewrite {}/f /f2mx/= /linfun/= locked_withE /linfun_def/=.
-Abort.
+rewrite [RHS](_ : _ = (#|K| ^ \dim (lker (Hom A)))%N); last first.
+  rewrite -mxrank_ker -(mx2vsK (kermx A)) -/(dimv _).
+  by rewrite -[A in RHS]HomK -[in RHS]/(lker _).
+by rewrite -card_vspace card_lker_Hom.
+Qed.
 
-Lemma count_kernel_vectors :
-  #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
-Proof.
-rewrite -card_lker_mulmx card_vspace.
-set f := (linfun (mulmx^~ A)).
-have := limg_ker_dim (linfun f) fullv.
-rewrite fun_of_lfunK capfv dimvf dim_matrix mul1r.
-suff -> : \dim (limg f) = \rank (lin1_mx r2v *m A *m lin1_mx v2r).
-  move/(f_equal (subn^~ (\rank A))).
-  rewrite mxrankMfree.
-    rewrite -mxrank_tr trmx_mul mxrankMfree.
-      by rewrite mxrank_tr addnK => ->.
-    rewrite row_free_tr ?[LHS]mul1n //.
-    exact/cancel_row_free/r2vK.
-  exact/cancel_row_free/v2rK.
-rewrite {}/f.
-rewrite /lfun_img unlock /= /lfun_img_def.
-rewrite /fullv {2}/mx2vs /= genmx1 mul1mx.
-rewrite /dimv mx2vsK.
-congr mxrank.
-rewrite -[LHS]mul1mx -[RHS]mul1mx.
-apply/row_matrixP => i.
-rewrite !row_mul !mulmxA !mul_rV_lin1 /=.
-Fail by rewrite /f2mx unlock mul_rV_lin1.
-Abort.
 End counting.
 
 Section rVnpoly_npoly_rV.
