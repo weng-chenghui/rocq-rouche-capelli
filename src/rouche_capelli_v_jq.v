@@ -252,9 +252,7 @@ Proof. by []. Qed.
 Lemma count_kernel_vectors :
   #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
 Proof.
-rewrite [RHS](_ : _ = (#|K| ^ \dim (lker (Hom A)))%N); last first.
-  by rewrite [\dim _]mx2vsK mxrank_ker.
-by rewrite -card_vspace card_lker_Hom.
+by rewrite -card_lker_Hom /lker HomK card_vspace /dimv mx2vsK mxrank_ker.
 Qed.
 
 End counting.
