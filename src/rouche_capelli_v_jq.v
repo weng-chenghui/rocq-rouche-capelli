@@ -272,7 +272,8 @@ Lemma vs2mxF (vectTyp): VectorInternalTheory.vs2mx {:vT} = 1%:M.
 Proof. by rewrite /= genmx1. Qed.
 *)
 
-Lemma cancel_row_free p (g h : {linear 'rV[K]_p -> 'rV[K]_p}) :
+Lemma cancel_row_free p q (g : {linear 'rV[K]_p -> 'rV[K]_q})
+                          (h : {linear 'rV[K]_q -> 'rV[K]_p}) :
   cancel g h -> row_free (lin1_mx g).
 Proof.
 move=> gh.
@@ -289,6 +290,8 @@ Proof. by move=> x y z; rewrite /f mulmxDl -scalemxAl /=. Qed.
 HB.instance Definition _ := GRing.isSemilinear.Build K _ _ _ f
   (GRing.semilinear_linear linearf).
 
+Lemma row_free_tr p q (M : 'M[K]_(p,q)) : p = q -> row_free M^T = row_free M.
+Proof. by move=> pq; rewrite -row_leq_rank mxrank_tr -{1}pq row_leq_rank. Qed.
 
 Lemma count_kernel_vectors :
   #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
@@ -304,18 +307,9 @@ suff -> : \dim (limg (linfun f)) = \rank (lin1_mx r2v *m A *m lin1_mx v2r).
   rewrite mxrankMfree.
     rewrite -mxrank_tr trmx_mul mxrankMfree.
       by rewrite mxrank_tr addnK => ->.
-    apply/row_freeP.
-    exists (lin1_mx v2r)^T.
-    rewrite -trmx_mul.
-    apply/trmx_inj.
-    rewrite trmxK trmx1 -[lin1_mx v2r]mul1mx.
-    apply/row_matrixP => i.
-    by rewrite !row_mul !mul_rV_lin1 /= v2rK.
-  apply/row_freeP.
-  exists (lin1_mx r2v).
-  rewrite -[lin1_mx v2r]mul1mx.
-  apply/row_matrixP => i.
-  by rewrite !row_mul !mul_rV_lin1 /= v2rK.
+    rewrite row_free_tr ?[LHS]mul1n //.
+    exact/cancel_row_free/r2vK.
+  exact/cancel_row_free/v2rK.
 rewrite /lfun_img unlock /= /lfun_img_def.
 rewrite /fullv {2}/mx2vs /= genmx1 mul1mx.
 rewrite /dimv mx2vsK.
