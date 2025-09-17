@@ -58,64 +58,6 @@ Proof. by apply: eq_card=> /= x; rewrite !inE memv_ker lfunE. Qed.
 
 End finvect_lemmas.
 
-(*
-#[short(type="finVectType")]
-HB.structure Definition FinVector (R : nzRingType) :=
-  { V of Vector R V & Finite V }.
-
-Module FVT.
-Section def.
-Variables (R : finNzRingType) (vT : vectType R).
-
-HB.instance Definition _ := CanIsCountable (@v2rK R vT).
-
-Definition t_subproof : @FinVector.axioms_ R vT.
-apply: FinVector.Class.
-- have @ax := CanIsCountable (@v2rK R vT).
-  econstructor.
-  exact: (isCountable.pickleK ax).
-- by econstructor; apply vector_subdef.
-- exact: (CanIsFinite (@v2rK R vT)).
-Defined.
-Definition t := HB.pack_for (finVectType R) vT t_subproof.
-Succeed Definition test :=  t : finVectType _.
-End def.
-End FVT.
-
-Section card_vspace.
-Variable K : finFieldType.
-Variable vT : vectType K.
-(*Local Notation fvT := (can_type (@v2rK K vT)).*)
-(*Definition fvT := (can_type (@v2rK K vT)).*)
-Local Notation fvT := (FVT.t vT).
-
-(*HB.instance Definition _ := [Finite of {vspace fvT} by <:].*)
-HB.instance Definition _ (U : {vspace fvT}) := [Finite of subvs_of U by <:].
-
-Arguments v2r_inj {R vT}.
-
-Local Lemma card_vspace_helper (U : {vspace fvT}) :
-  #|U : {pred fvT}| = #|'rV[K]_(\dim U)|.
-Proof.
-set UU := (U : {pred fvT}).
-transitivity #|[set val x | x in subvs_of U]|.
-  apply: eq_card => v /=.
-  apply/idP/idP; first by move/vsprojK<-; apply: imset_f.
-  by case/imsetP=> /= -[] u /= ? _ ->.
-transitivity #|[set v2r x | x in subvs_of U]|.
-  by rewrite !card_imset//; [exact: v2r_inj | exact: val_inj].
-apply: eq_card => /= r.
-rewrite !inE -/(is_true _).
-by rewrite -(r2vK r) mem_imset; last exact: v2r_inj.
-Qed.
-
-Lemma card_vspace (U : {vspace fvT}) :
-  #|U : {pred fvT}| = (#| {:K} | ^ (\dim U))%N.
-Proof. by rewrite card_vspace_helper card_mx mul1n. Qed.
-
-End card_vspace.
-*)
-
 
 Section RoucheCapelliTheorems.
 
