@@ -31,6 +31,20 @@ Section finvect_lemmas.
 
 Arguments v2r_inj {R vT}.
 
+(** 
+ * Lemma: Cardinality of a Finite-Dimensional Vector Subspace
+ * 
+ * This lemma establishes a fundamental result in linear algebra: the cardinality 
+ * of a finite-dimensional vector subspace U over a finite field K equals 
+ * |K|^dim(U), where |K| is the size of the field and dim(U) is the dimension 
+ * of the subspace.
+ * 
+ * This is a direct consequence of the fact that any d-dimensional vector space 
+ * over a field K is isomorphic to K^d, and therefore has exactly |K|^d elements.
+ * 
+ * The proof constructs an explicit bijection between the elements of U and 
+ * the coordinate vectors in K^d, establishing the cardinality equality.
+ *)
 Local Lemma card_vspace_helper
   (K : finFieldType) (fvT : finVectType K) (U : {vspace fvT}) :
   #|U| = #|'rV[K]_(\dim U)|.
@@ -50,6 +64,14 @@ Lemma card_vspace
   (K : finFieldType) (fvT : finVectType K) (U : {vspace fvT}) :
   #|U| = (#| {:K} | ^ (\dim U))%N.
 Proof. by rewrite card_vspace_helper card_mx mul1n. Qed.
+
+Local Corollary card_vspace_helper_rV {K : finFieldType} n (U : {vspace 'rV[K]_n}) :
+  #|U| = #|'rV[K]_(\dim U)|.
+Proof. by rewrite !card_vspace card_mx mul1n. Qed.
+
+Local Corollary card_vspace_rV {K : finFieldType} n (U : {vspace 'rV[K]_n}) :
+  #|U| = (#| {:K} | ^ (\dim U))%N.
+Proof. exact: card_vspace. Qed.
 
 Lemma card_lker_lfun
   (K : fieldType) (aT : finVectType K) (rT : vectType K) (f : {linear aT -> rT}) :
@@ -162,10 +184,6 @@ apply/eqP.
 by rewrite mulmxA mulmx_coker mul0mx.
 Qed.
 
-Local Corollary card_vspace_helper_rV n (U : {vspace 'rV[K]_n}) :
-  #|U| = #|'rV[K]_(\dim U)|.
-Proof. by rewrite !card_vspace card_mx mul1n. Qed.
-
 Lemma submx_castmx m1 m2 n (A : 'M[K]_(m1, n)) (B : 'M[K]_(m2, n)) e :
   (A <= B)%MS -> @submx.body K m1 m2 n A (castmx e B).
 Proof.
@@ -175,24 +193,6 @@ have /eqmxP HBb := HB.
 rewrite -(eqmxP HBb) in sAB.
 exact: sAB.
 Qed.
-
-(** 
- * Lemma: Cardinality of a Finite-Dimensional Vector Subspace
- * 
- * This lemma establishes a fundamental result in linear algebra: the cardinality 
- * of a finite-dimensional vector subspace U over a finite field K equals 
- * |K|^dim(U), where |K| is the size of the field and dim(U) is the dimension 
- * of the subspace.
- * 
- * This is a direct consequence of the fact that any d-dimensional vector space 
- * over a field K is isomorphic to K^d, and therefore has exactly |K|^d elements.
- * 
- * The proof constructs an explicit bijection between the elements of U and 
- * the coordinate vectors in K^d, establishing the cardinality equality.
- *)
-Lemma card_vspace_rV n (U : {vspace 'rV[K]_n}) :
-  #|U| = (#| {:K} | ^ (\dim U))%N.
-Proof. exact: card_vspace. Qed.
 
 (* Lemma for casting matrix multiplication with row vectors *)
 Lemma castmx_mul_row m n p q (e_m : m = p) (e_n : n = q) 
@@ -208,6 +208,7 @@ Section counting.
 
 Variables (m n : nat) (A : 'M[K]_(m, n)).
 
+(*
 Corollary card_lker_mulmx :
   let f := mulmx (m:=1) ^~ A in
   #|lker (linfun f)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
@@ -217,6 +218,7 @@ have /= f_lin := (mulmx_is_bilinear K 1 m n).1 A.
 have @lf := HB.pack_for {linear _ -> _} f (GRing.isLinear.Build _ _ _ _ _ f_lin).
 by rewrite (card_lker_lfun lf).
 Qed.
+*)
 
 Lemma card_lker_Hom : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
 Proof.
