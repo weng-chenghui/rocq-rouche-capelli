@@ -18,18 +18,21 @@ HB.mixin Record isFinVector
 HB.structure Definition FinVector
   (R : nzRingType) := { V of isFinVector R V & }.
 
-Section card_vspace.
-Variable K : finFieldType.
-Variable fvT : finVectType K.
+HB.instance Definition _ (K : finFieldType) m n := isFinVector.Build K 'M[K]_(m,n).
+HB.instance Definition _ (K : finFieldType) m := isFinVector.Build K {poly_m K}.
+(*HB.instance Definition _ (K : fieldType) (fvT : finVectType K)
+  := [Finite of {vspace fvT} by <:].*)
+HB.instance Definition _ (K : fieldType) (fvT : finVectType K) (U : {vspace fvT}) :=
+  [Finite of subvs_of U by <:].
+HB.instance Definition _ (K : fieldType) (fvT : finVectType K) (U : {vspace fvT}) :=
+  isFinVector.Build K (subvs_of U).
 
-HB.instance Definition _ m n := isFinVector.Build K 'M[K]_(m,n).
-(*HB.instance Definition _ := [Finite of {vspace fvT} by <:].*)
-HB.instance Definition _ (U : {vspace fvT}) := [Finite of subvs_of U by <:].
-HB.instance Definition _ (U : {vspace fvT}) := isFinVector.Build K (subvs_of U).
+Section finvect_lemmas.
 
 Arguments v2r_inj {R vT}.
 
-Lemma card_vspace_helper (U : {vspace fvT}) :
+Local Lemma card_vspace_helper
+  (K : finFieldType) (fvT : finVectType K) (U : {vspace fvT}) :
   #|U| = #|'rV[K]_(\dim U)|.
 Proof.
 transitivity #|[set val x | x in subvs_of U]|.
@@ -43,11 +46,17 @@ rewrite !inE -/(is_true _).
 by rewrite -(r2vK r) mem_imset; last exact: v2r_inj.
 Qed.
 
-Lemma card_vspace (U : {vspace fvT}) :
+Lemma card_vspace
+  (K : finFieldType) (fvT : finVectType K) (U : {vspace fvT}) :
   #|U| = (#| {:K} | ^ (\dim U))%N.
 Proof. by rewrite card_vspace_helper card_mx mul1n. Qed.
 
-End card_vspace.
+Lemma card_lker_lfun
+  (K : fieldType) (aT : finVectType K) (rT : vectType K) (f : {linear aT -> rT}) :
+  #|lker (linfun f)| = #|[set x : aT | f x == 0]|.
+Proof. by apply: eq_card=> /= x; rewrite !inE memv_ker lfunE. Qed.
+
+End finvect_lemmas.
 
 (*
 #[short(type="finVectType")]
@@ -85,7 +94,7 @@ HB.instance Definition _ (U : {vspace fvT}) := [Finite of subvs_of U by <:].
 
 Arguments v2r_inj {R vT}.
 
-Lemma card_vspace_helper (U : {vspace fvT}) :
+Local Lemma card_vspace_helper (U : {vspace fvT}) :
   #|U : {pred fvT}| = #|'rV[K]_(\dim U)|.
 Proof.
 set UU := (U : {pred fvT}).
@@ -106,7 +115,6 @@ Proof. by rewrite card_vspace_helper card_mx mul1n. Qed.
 
 End card_vspace.
 *)
-
 
 
 Section RoucheCapelliTheorems.
@@ -199,26 +207,9 @@ apply/eqP.
 by rewrite mulmxA mulmx_coker mul0mx.
 Qed.
 
-Unset Printing Notations.
-HB.saturate matrix.
-HB.about matrix.
-Check 'rV[K]__ : vectType _.
-Check 'rV[K]__ : finType.
-
-HB.saturate matrix.
-HB.about 'rV[K]_ 5 : finVectType K.
-Check 'rV[K]__ : finVectType _.
-
-Lemma card_vspace_helper_rV n (U : {vspace 'rV[K]_n}) :
+Local Corollary card_vspace_helper_rV n (U : {vspace 'rV[K]_n}) :
   #|U| = #|'rV[K]_(\dim U)|.
-Proof.
-move: U; rewrite (_ : 'rV[K]_n = FVT.t 'rV[K]_n) // => U.
-rewrite (_ : #|U| = #|U : {pred FVT.t 'rV_n}|).
-  by rewrite card_vspace_helper.
-case: U=> /= mx prf.
-Set Printing All.
-Qed.
-
+Proof. by rewrite !card_vspace card_mx mul1n. Qed.
 
 Lemma submx_castmx m1 m2 n (A : 'M[K]_(m1, n)) (B : 'M[K]_(m2, n)) e :
   (A <= B)%MS -> @submx.body K m1 m2 n A (castmx e B).
@@ -244,31 +235,9 @@ Qed.
  * The proof constructs an explicit bijection between the elements of U and 
  * the coordinate vectors in K^d, establishing the cardinality equality.
  *)
-Lemma card_vspace_fin_helper n (U : {vspace 'rV[K]_n}) :
+Lemma card_vspace_rV n (U : {vspace 'rV[K]_n}) :
   #|U| = (#| {:K} | ^ (\dim U))%N.
-Proof.
-  pose d := (\dim U).
-  pose to_col (w : subvs_of U) := \col_i coord (vbasis U) i (val w).
-  pose sum_cw (cw : 'cV_d) : 'rV[K]_n := \sum_i (cw i ord0 *: (vbasis U)`_i).  
-  have mem_sum_cw cw : sum_cw cw \in U.
-    apply: memv_suml => j _.
-    by apply: memvZ; apply: (vbasis_mem (U:=U)); apply: memt_nth.
-  pose from_col (cw : 'cV_d) : subvs_of U := Sub (sum_cw cw) (mem_sum_cw cw).
-  have to_from : forall cw, to_col (from_col cw) = cw.
-    move=> cw; apply/colP=> i; rewrite mxE.
-    have -> : val (from_col cw) = sum_cw cw by [].
-    by rewrite coord_sum_free ?(basis_free (vbasisP U)).
-  have from_to : forall w : subvs_of U, from_col (to_col w) = w.
-    move=> w; apply/val_inj.
-    rewrite /from_col /sum_cw /to_col /=.
-    have -> : \sum_i (to_col w) i ord0 *: (vbasis U)`_i
-            = \sum_i coord (vbasis U) i (val w) *: (vbasis U)`_i.
-    by apply: eq_bigr => i _; rewrite mxE.
-    by rewrite (coord_vbasis (subvsP w)).
-  have bij_to_col : bijective to_col.
-    by apply: (Bijective from_to to_from).
-  by rewrite cardU_eq card_mx /d mul1n.
-Qed.
+Proof. exact: card_vspace. Qed.
 
 (* Lemma for casting matrix multiplication with row vectors *)
 Lemma castmx_mul_row m n p q (e_m : m = p) (e_n : n = q) 
@@ -284,13 +253,27 @@ Section counting.
 
 Variables (m n : nat) (A : 'M[K]_(m, n)).
 
-Lemma lkerA_eq : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
-Admitted.
+Corollary card_lker_mulmx :
+  let f := mulmx (m:=1) ^~ A in
+  #|lker (linfun f)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
+Proof.
+move=> f.
+have /= f_lin := (mulmx_is_bilinear K 1 m n).1 A.
+have @lf := HB.pack_for {linear _ -> _} f (GRing.isLinear.Build _ _ _ _ _ f_lin).
+by rewrite (card_lker_lfun lf).
+Qed.
 
-Let f := mulmx (m:=1) ^~ A.
-
-Lemma lker_eq : #|lker (linfun f)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
-Admitted.
+Lemma card_lker_Hom : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
+Proof.
+rewrite -[in LHS]cardsE.
+have/card_imset<-/= := (can_inj (@v2rK K {poly_m K})).
+apply: eq_card=> /= r.
+rewrite -[in LHS](r2vK r) mem_imset; last exact: v2r_inj.
+rewrite !inE memv_ker.
+rewrite -[LHS](inj_eq (@v2r_inj _ _)) linear0.
+congr (_ == 0).
+by rewrite /fun_of_lfun/= locked_withE/= /fun_of_lfun_def/= !r2vK.
+Qed.
 
 (* We cannot use it (internal)
 Lemma vs2mxF (vectTyp): VectorInternalTheory.vs2mx {:vT} = 1%:M.
@@ -309,25 +292,48 @@ apply/row_matrixP => i.
 by rewrite !row_mul !mul_rV_lin1 /= gh.
 Qed.
 
-Let linearf : linear f.
-Proof. by move=> x y z; rewrite /f mulmxDl -scalemxAl /=. Qed.
-
-HB.instance Definition _ := GRing.isSemilinear.Build K _ _ _ f
-  (GRing.semilinear_linear linearf).
+Lemma diffvv : forall {K : fieldType} {vT : vectType K} (U : {vspace vT}),
+    (U :\: U = 0)%VS.
+Proof. by move=> ? ? U; apply/eqP; rewrite diffv_eq0 subvv. Qed.
 
 Lemma row_free_tr p q (M : 'M[K]_(p,q)) : p = q -> row_free M^T = row_free M.
 Proof. by move=> pq; rewrite -row_leq_rank mxrank_tr -{1}pq row_leq_rank. Qed.
 
+Lemma limg_lker : forall {K : fieldType} {aT rT : vectType K} (f : 'Hom(aT, rT)),
+    (f @: lker f = 0)%VS.
+Proof. by move=> ? ? ? ?; rewrite -limg_ker_compl diffvv limg0. Qed.
+
 Lemma count_kernel_vectors :
   #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
 Proof.
-Import VectorInternalTheory.
-rewrite -lker_eq.
-rewrite card_vspace_fin_helper.
+rewrite -card_lker_mulmx card_vspace.
+congr (_ ^ _)%N.
+rewrite -mxrank_ker -(mx2vsK (kermx A)) -/(dimv _).
+Abort.
+
+Lemma count_kernel_vectors :
+  #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
+Proof.
+rewrite -card_lker_mulmx card_vspace.
+congr (_ ^ _)%N.
+set f := (f in lker f).
+apply/eqP; rewrite -(@eqn_add2r (\rank A)) subnK ?rank_leq_row//.
 have := limg_ker_dim (linfun f) fullv.
-rewrite (_ : (fullv :&: _)%VS = lker (linfun f)); last by apply/capv_idPr/subvf.
-rewrite (_ : \dim fullv = m); last by rewrite dimvf /dim /= mul1n.
-suff -> : \dim (limg (linfun f)) = \rank (lin1_mx r2v *m A *m lin1_mx v2r).
+rewrite fun_of_lfunK capfv dimvf dim_matrix mul1r.
+suff->: \dim (limg f) = \rank A by move->.
+rewrite /dimv /(limg _) locked_withE /lfun_img_def.
+rewrite mx2vsK/= genmx1 mul1mx.
+rewrite {}/f /f2mx/= /linfun/= locked_withE /linfun_def/=.
+Abort.
+
+Lemma count_kernel_vectors :
+  #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
+Proof.
+rewrite -card_lker_mulmx card_vspace.
+set f := (linfun (mulmx^~ A)).
+have := limg_ker_dim (linfun f) fullv.
+rewrite fun_of_lfunK capfv dimvf dim_matrix mul1r.
+suff -> : \dim (limg f) = \rank (lin1_mx r2v *m A *m lin1_mx v2r).
   move/(f_equal (subn^~ (\rank A))).
   rewrite mxrankMfree.
     rewrite -mxrank_tr trmx_mul mxrankMfree.
@@ -335,6 +341,7 @@ suff -> : \dim (limg (linfun f)) = \rank (lin1_mx r2v *m A *m lin1_mx v2r).
     rewrite row_free_tr ?[LHS]mul1n //.
     exact/cancel_row_free/r2vK.
   exact/cancel_row_free/v2rK.
+rewrite {}/f.
 rewrite /lfun_img unlock /= /lfun_img_def.
 rewrite /fullv {2}/mx2vs /= genmx1 mul1mx.
 rewrite /dimv mx2vsK.
@@ -342,9 +349,9 @@ congr mxrank.
 rewrite -[LHS]mul1mx -[RHS]mul1mx.
 apply/row_matrixP => i.
 rewrite !row_mul !mulmxA !mul_rV_lin1 /=.
-by rewrite /f2mx unlock mul_rV_lin1.
-Qed.
-End couting.
+Fail by rewrite /f2mx unlock mul_rV_lin1.
+Abort.
+End counting.
 
 Section rVnpoly_npoly_rV.
 Variables (m n : nat) (A : 'M[K]_(m, n)).
@@ -373,34 +380,21 @@ HB.instance Definition _ := GRing.isLinear.Build K _ _ _ _ npoly_rV_is_linear.
 
 
 (*
-Require Import FunctionalExtensionality.
 Lemma linfunK : forall {R : nzRingType} {aT rT : vectType R} (f : {linear aT -> rT}),
     @fun_of_lfun R aT rT (@linfun R aT rT f) = f.
 Proof.
 move=> R aT rT f.
 rewrite /fun_of_lfun locked_withE /fun_of_lfun_def.
 rewrite /linfun locked_withE /linfun_def/=.
-apply: functional_extensionality => a/=.
+apply: boolp.funext => a/=.
 by rewrite mul_rV_lin1/= !v2rK.
 Qed.
 *)
 
-Lemma card_lker : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
-Proof.
-rewrite -[in LHS]cardsE.
-have/card_imset<-/= := (can_inj (@v2rK K {poly_m K})).
-apply: eq_card=> /= r.
-rewrite -[in LHS](r2vK r) mem_imset; last exact: v2r_inj.
-rewrite !inE memv_ker.
-rewrite -[LHS](inj_eq (@v2r_inj _ _)) linear0.
-congr (_ == 0).
-by rewrite /fun_of_lfun/= locked_withE/= /fun_of_lfun_def/= !r2vK.
-Qed.
-
 Lemma count_kernel_vectors_gaussian_elimination' :
   #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
 Proof.
-rewrite -card_lker.
+rewrite -card_lker_mx.
 
 About lker.
 Check lker (Hom A) : {pred _}.
@@ -428,7 +422,7 @@ End try.
 
 *)
 
-About lkerA_eq.
+About card_lker_mx.
 Check K.
 
 End FiniteSolutionCounting.
