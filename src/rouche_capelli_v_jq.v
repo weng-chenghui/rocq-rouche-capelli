@@ -241,9 +241,9 @@ Proof. by move=> ? ? U; apply/eqP; rewrite diffv_eq0 subvv. Qed.
 Lemma row_free_tr p q (M : 'M[K]_(p,q)) : p = q -> row_free M^T = row_free M.
 Proof. by move=> pq; rewrite -row_leq_rank mxrank_tr -{1}pq row_leq_rank. Qed.
 
-Lemma limg_lker : forall {K : fieldType} {aT rT : vectType K} (f : 'Hom(aT, rT)),
+Lemma limg_lker {K' : fieldType} {aT rT : vectType K} (f : 'Hom(aT, rT)) :
     (f @: lker f = 0)%VS.
-Proof. by move=> ? ? ? ?; rewrite -limg_ker_compl diffvv limg0. Qed.
+Proof. by apply/eqP; rewrite -lkerE. Qed.
 
 Lemma HomK : forall {R : nzRingType} {vT wT : vectType R} (A : 'M_(dim vT, dim wT)),
     f2mx (Hom A) = A.
@@ -253,8 +253,7 @@ Lemma count_kernel_vectors :
   #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
 Proof.
 rewrite [RHS](_ : _ = (#|K| ^ \dim (lker (Hom A)))%N); last first.
-  rewrite -mxrank_ker -(mx2vsK (kermx A)) -/(dimv _).
-  by rewrite -[A in RHS]HomK -[in RHS]/(lker _).
+  by rewrite [\dim _]mx2vsK mxrank_ker.
 by rewrite -card_vspace card_lker_Hom.
 Qed.
 
