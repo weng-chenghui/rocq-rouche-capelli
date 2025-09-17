@@ -222,14 +222,12 @@ Qed.
 
 Lemma card_lker_Hom : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
 Proof.
-rewrite -[in LHS]cardsE.
-have/card_imset<-/= := (can_inj (@v2rK K {poly_m K})).
-apply: eq_card=> /= r.
-rewrite -[in LHS](r2vK r) mem_imset; last exact: v2r_inj.
+have/card_imset<-/= := (can_inj (@r2vK K {poly_m K})).
+apply: eq_card=> /= v.
+rewrite -[in RHS](v2rK v) mem_imset; last exact: r2v_inj.
 rewrite !inE memv_ker.
-rewrite -[LHS](inj_eq (@v2r_inj _ _)) linear0.
-congr (_ == 0).
-by rewrite /fun_of_lfun/= locked_withE/= /fun_of_lfun_def/= !r2vK.
+rewrite -[RHS](inj_eq (@r2v_inj _ _)) linear0.
+by rewrite [in LHS]unlock.
 Qed.
 
 (* We cannot use it (internal)
