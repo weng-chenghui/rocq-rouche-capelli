@@ -58,6 +58,19 @@ Proof. by apply: eq_card=> /= x; rewrite !inE memv_ker lfunE. Qed.
 
 End finvect_lemmas.
 
+Section vector_ext.
+Lemma diffvv {K : fieldType} {vT : vectType K} (U : {vspace vT}) :
+  (U :\: U = 0)%VS.
+Proof. by apply/eqP; rewrite diffv_eq0 subvv. Qed.
+
+Lemma limg_lker {K : fieldType} {aT rT : vectType K} (f : 'Hom(aT, rT)) :
+    (f @: lker f = 0)%VS.
+Proof. by apply/eqP; rewrite -lkerE. Qed.
+
+Lemma HomK {R : nzRingType} {vT wT : vectType R} (A : 'M_(dim vT, dim wT)) :
+  f2mx (Hom A) = A.
+Proof. by []. Qed.
+End vector_ext.
 
 Section RoucheCapelliTheorems.
 
@@ -234,20 +247,8 @@ apply/row_matrixP => i.
 by rewrite !row_mul !mul_rV_lin1 /= gh.
 Qed.
 
-Lemma diffvv : forall {K : fieldType} {vT : vectType K} (U : {vspace vT}),
-    (U :\: U = 0)%VS.
-Proof. by move=> ? ? U; apply/eqP; rewrite diffv_eq0 subvv. Qed.
-
 Lemma row_free_tr p q (M : 'M[K]_(p,q)) : p = q -> row_free M^T = row_free M.
 Proof. by move=> pq; rewrite -row_leq_rank mxrank_tr -{1}pq row_leq_rank. Qed.
-
-Lemma limg_lker {K' : fieldType} {aT rT : vectType K} (f : 'Hom(aT, rT)) :
-    (f @: lker f = 0)%VS.
-Proof. by apply/eqP; rewrite -lkerE. Qed.
-
-Lemma HomK : forall {R : nzRingType} {vT wT : vectType R} (A : 'M_(dim vT, dim wT)),
-    f2mx (Hom A) = A.
-Proof. by []. Qed.
 
 Lemma count_kernel_vectors :
   #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
