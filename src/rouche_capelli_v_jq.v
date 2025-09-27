@@ -203,22 +203,45 @@ Proof.
   by rewrite !castmx_id.
 Qed.
 
+Section card_lker.
+Import passmx.
+
+Variables (aT rT : finVectType K).
+Variable f : 'Hom(aT, rT).
+Variable e : (\dim {:aT}).-tuple aT.
+Hypothesis be : basis_of {:aT} e.
+Variable e' : (\dim {:rT}).-tuple rT.
+Hypothesis be' : basis_of {:rT} e'.
+
+Lemma card_lker_mxof : #|(lker f)| =
+                      #|[set x : 'rV[K]_(\dim {:aT}) | x *m (mxof e e' f) == 0]|.
+Proof.
+have/card_imset<-/= := (can_inj (vecofK be)).
+apply: eq_card=> /= v.
+rewrite -[in RHS](rVofK be v) mem_imset; last by exact: can_inj (vecofK be).
+rewrite !inE memv_ker mul_mxof (rVofK be).
+by rewrite -[LHS](can_eq (rVofK be')) linear0.
+Qed.
+
+End card_lker.
 
 Section counting.
-
+  
 Variables (m n : nat) (A : 'M[K]_(m, n)).
 
-(*
-Corollary card_lker_mulmx :
-  let f := mulmx (m:=1) ^~ A in
-  #|lker (linfun f)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
-Proof.
-move=> f.
-have /= f_lin := (mulmx_is_bilinear K 1 m n).1 A.
-have @lf := HB.pack_for {linear _ -> _} f (GRing.isLinear.Build _ _ _ _ _ f_lin).
-by rewrite (card_lker_lfun lf).
-Qed.
-*)
+Definition stdbasis {n} := [tuple 'e_i : 'rV[K]_(\dim {:'rV[K]_n}) | i < \dim {:'rV[K]_n}].
+
+About card_lker_mxof.
+Check Hom A.
+Check npolyX K m.
+Check npolyX K (\dim {:'rV[K]_m}).
+Check npolyX_full K (\dim {:'rV[K]_m}).
+Check npolyX_full K m.
+(* Process will get stuck if we don't specify {poly_m K}*)
+(* Check card_lker_mxof (Hom A) (npolyX_full K m). *) 
+
+Lemma dim_rV p : \dim {:'rV[K]_p} = p.
+Proof. by rewrite dimvf /dim /= mul1n. Qed.
 
 Lemma card_lker_Hom : #|lker (Hom A)| = #|[set x : 'rV[K]_m | x *m A == 0]|.
 Proof.
@@ -229,11 +252,6 @@ rewrite !inE memv_ker.
 rewrite -[RHS](inj_eq (@r2v_inj _ _)) linear0.
 by rewrite [in LHS]unlock.
 Qed.
-
-(* We cannot use it (internal)
-Lemma vs2mxF (vectTyp): VectorInternalTheory.vs2mx {:vT} = 1%:M.
-Proof. by rewrite /= genmx1. Qed.
-*)
 
 Lemma cancel_row_free p q (g : {linear 'rV[K]_p -> 'rV[K]_q})
                           (h : {linear 'rV[K]_q -> 'rV[K]_p}) :
@@ -296,13 +314,6 @@ by rewrite mul_rV_lin1/= !v2rK.
 Qed.
 *)
 
-Lemma count_kernel_vectors_gaussian_elimination' :
-  #| [set x : 'rV[K]_m | x *m A == 0] | = (#| {:K} | ^ (m - \rank A))%N.
-Proof.
-rewrite -card_lker_mx.
-
-About lker.
-Check lker (Hom A) : {pred _}.
 End rVnpoly_npoly_rV.
 
 (*
@@ -663,7 +674,7 @@ High-level goal: count solutions x to A x = 0 over finite field K.
 
 Final result: |{ x | A x = 0 }| = |K|^(n − rank(A)).
 *)
-End FiniteSolutionCounting.
+End counting.
 
 (*
 Module vT_finType_experiment.
@@ -712,3 +723,4 @@ Check #|s : {pred v}|.
 End vT_finType.
 End vT_finType_experiment.
 *)
+
