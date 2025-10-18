@@ -18,8 +18,8 @@ WORKDIR /workspace
 # Copy opam file for dependency installation
 COPY rocq-rouche-capelli.opam .
 
-# Add rocq-released repository for rocq-mathcomp packages
-RUN opam repo add rocq-released https://rocq-prover.org/opam/released
+# Update rocq-released repository URL (already present in base image)
+RUN opam repository set-url rocq-released https://rocq-prover.org/opam/released
 
 # Install project dependencies using opam
 RUN opam update -y && \
