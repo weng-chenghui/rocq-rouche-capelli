@@ -1,5 +1,5 @@
 # Dockerfile for Rocq CI builds
-FROM rocq/rocq-prover:9.0.0 AS builder
+FROM rocq/rocq-prover:9.0 AS builder
 
 # Switch to root for system package installation
 USER root
