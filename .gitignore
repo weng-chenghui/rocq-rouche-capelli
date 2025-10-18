@@ -1,4 +1,5 @@
 .*~undo-tree~
+.*
 *.vo
 *.vok
 *.vos
@@ -7,3 +8,7 @@
 *.*~
 .Makefile.coq.d
 /.lake
+Makefile.coq
+Makefile.coq.conf
+Makefile.coq.conf.d/
+publish-op.plan.md

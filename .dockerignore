@@ -26,3 +26,4 @@ Makefile.coq
 
 # Cache files
 .cache/
+.docs
