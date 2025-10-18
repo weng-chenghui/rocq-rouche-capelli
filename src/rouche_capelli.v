@@ -267,3 +267,5 @@ Qed.
 
 End counting.
 
+End FiniteSolutionCounting.
+
