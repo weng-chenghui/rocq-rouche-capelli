@@ -267,5 +267,257 @@ Qed.
 
 End counting.
 
+Section affine_solution_counting.
+  
+Variables (m n : nat) (A : 'M[K]_(m, n)) (b : 'rV[K]_n).
+
+Definition kernel_solutions := [set x : 'rV[K]_m | x *m A == 0].
+Definition affine_solutions := [set x : 'rV[K]_m | x *m A == b].
+  
+(* Given a particular solution, affine set = particular + kernel *)
+Lemma affine_eq_translate_kernel (x0 : 'rV[K]_m) :
+  x0 *m A = b ->
+  affine_solutions = [set x0 + k | k in kernel_solutions].
+Proof.
+move=> Hx0.
+apply/setP => x; rewrite !inE.
+apply/idP/imsetP.
+- (* Forward: x in affine_solutions -> x in x0 + kernel *)
+  move/eqP => Hx.
+  exists (x - x0).
+  + rewrite inE.
+    apply/eqP.
+    by rewrite mulmxBl Hx Hx0 subrr.
+  + by rewrite addrC subrK.
+- (* Backward: x in x0 + kernel -> x in affine_solutions *)
+  case=> k.
+  rewrite inE => /eqP Hk ->.
+  apply/eqP.
+  by rewrite mulmxDl Hk addr0.
+Qed.
+
+Lemma card_translate (S : {set 'rV[K]_m}) (v : 'rV[K]_m) :
+  #|[set v + s | s in S]| = #|S|.
+Proof.
+apply: card_in_imset.
+move=> x y _ _.
+exact: addrI.
+Qed.
+
+Lemma count_affine_solutions (x0 : 'rV[K]_m) :
+  x0 *m A = b ->
+  #|affine_solutions| = #|kernel_solutions|.
+Proof.
+move=> Hx0.
+rewrite (affine_eq_translate_kernel Hx0).
+exact: card_translate.
+Qed.
+
+Lemma count_affine_solutions_explicit (x0 : 'rV[K]_m) :
+  x0 *m A = b ->
+  #|affine_solutions| = (#|{:K}| ^ (m - \rank A))%N.
+Proof.
+move=> Hx0.
+rewrite (count_affine_solutions Hx0).
+rewrite /kernel_solutions.
+exact: count_kernel_vectors.
+Qed.
+
+End affine_solution_counting.
+
+(* Because Coq refuse to recognize 'M_(1,1) is rV. We nee cV lemmas. *)
+Section affine_solultion_counting_col.
+
+Variables (m n : nat) (A : 'M[K]_(m, n)) (b : 'cV[K]_m).
+
+(* The set of solutions to the inhomogeneous system A *m v = b *)
+Definition affine_solutions_col := [set v : 'cV[K]_n | A *m v == b].
+
+(* The kernel (homogeneous solutions) *)
+Definition kernel_solutions_col := [set v : 'cV[K]_n | A *m v == 0].
+
+(* Given a particular solution, affine set = particular + kernel *)
+Lemma affine_eq_translate_kernel_col (v0 : 'cV[K]_n) :
+  A *m v0 = b ->
+  affine_solutions_col = [set v0 + k | k in kernel_solutions_col].
+Proof.
+move=> Hv0.
+apply/setP => v; rewrite !inE.
+apply/idP/imsetP.
+- (* Forward *)
+  move/eqP => Hv.
+  exists (v - v0).
+  + rewrite inE; apply/eqP.
+    by rewrite mulmxBr Hv Hv0 subrr.
+  + by rewrite addrC subrK.
+- (* Backward *)
+  case=> k.
+  rewrite inE => /eqP Hk ->.
+  apply/eqP.
+  by rewrite mulmxDr Hk addr0.
+Qed.
+
+Lemma card_translate_col (S : {set 'cV[K]_n}) (v : 'cV[K]_n) :
+  #|[set v + s | s in S]| = #|S|.
+Proof.
+apply: card_in_imset.
+move=> x y _ _.
+exact: addrI.
+Qed.
+
+Lemma count_affine_solutions_col (v0 : 'cV[K]_n) :
+  A *m v0 = b ->
+  #|affine_solutions_col| = #|kernel_solutions_col|.
+Proof.
+move=> Hv0.
+rewrite (affine_eq_translate_kernel_col Hv0).
+exact: card_translate_col.
+Qed.
+
+(* Kernel cardinality for column vectors *)
+Lemma count_kernel_vectors_col :
+  #|[set v : 'cV[K]_n | A *m v == 0]| = (#|{:K}| ^ (n - \rank A))%N.
+Proof.
+transitivity #|[set v : 'rV[K]_n | v *m A^T == 0]|.
+- (* Bijection via transpose *)
+  rewrite -(card_in_imset (f := @trmx K n 1)).
+  + apply: eq_card => v.
+    apply/imsetP/idP.
+    * case=> w; rewrite inE => /eqP Hw ->.
+      by rewrite inE -trmx0 -Hw trmx_mul.
+    * rewrite inE => /eqP Hv.
+      exists v^T; last by rewrite trmxK.
+      rewrite inE -trmx0 -[A *m _]trmxK trmx_mul !trmxK trmx0 Hv trmx0.
+      by apply/eqP.
+  + by apply: in2W; exact: trmx_inj.
+- (* Apply row version *)
+  by rewrite count_kernel_vectors mxrank_tr.  
+Qed.
+
+Lemma count_affine_solutions_explicit_col (v0 : 'cV[K]_n) :
+  A *m v0 = b ->
+  #|affine_solutions_col| = (#|{:K}| ^ (n - \rank A))%N.
+Proof.
+move=> Hv0.
+rewrite (count_affine_solutions_col Hv0).
+rewrite /kernel_solutions_col.
+exact: count_kernel_vectors_col.
+Qed.
+
+End affine_solultion_counting_col.
+
+Lemma count_affine_solutions_rank1 (x y z : K) :
+  y != 0 ->
+  #|[set p : K * K | x * p.1 + y * p.2 == z]| = #|K|.
+Proof.
+move=> Hy.
+pose X := \col_(i < 2) (if i == 0 then x else y) : 'cV[K]_2.
+pose z_mx := \matrix_(i < 1, j < 1) z : 'rV[K]_1.
+have rank_X : \rank X = 1.
+  apply/eqP; rewrite eqn_leq; apply/andP; split.
+  + (* rank ≤ 1 since X has 1 column *)
+    by rewrite rank_leq_col.
+  + (* rank ≥ 1 since y ≠ 0, so X is non-zero *)
+    rewrite lt0n mxrank_eq0.
+    apply/eqP => /matrixP H.
+    move: (H (lift ord0 ord0) ord0).
+    by rewrite !mxE /= => /eqP; rewrite (negbTE Hy).
+pose x0 := \row_(j < 2) (if j == 0 then 0 else z / y) : 'rV[K]_2.
+have Hx0 : x0 *m X = z_mx^T.
+  apply/matrixP => i j.
+  rewrite !mxE (bigD1 ord0) //= (bigD1 (lift ord0 ord0)) //= big1; last first.
+    (* Sum over remaining indices is 0 *)
+    move => k.
+    rewrite !mxE => /andP [_ /negbTE Hk].
+    case: k Hk => [[|[|w]] Hn] //= Hk.
+      by rewrite mul0r.
+    by rewrite !mxE /= mul0r add0r addr0 divfK.
+have bij : #|[set p : K * K | x * p.1 + y * p.2 == z]| =
+           #|[set v : 'rV[K]_2 | v *m X == z_mx]|.
+  pose pair_to_row := fun (p : K * K) => \row_(j < 2)
+    (if j == 0 then p.1 else p.2).
+  transitivity #|[set pair_to_row p | p in
+    [set p : K * K | x * p.1 + y * p.2 == z]]|.
+  - (* Use card_in_imset with symmetry *)
+    symmetry.
+    apply: card_in_imset.
+    (* Injective: if pair_to_row p1 = pair_to_row p2, then p1 = p2 *)
+    move=> [p1 p2] [p3 p4] _ _ /rowP H.
+    congr pair.
+    + by move: (H ord0); rewrite !mxE /=.
+    + by move: (H (lift ord0 ord0)); rewrite !mxE /=.
+  - apply: eq_card => v.
+    apply/imsetP/idP.
+      case=> [[v1 v2]] /=.
+      rewrite inE => /eqP Heq ->.
+      rewrite inE; apply/eqP.
+      apply/matrixP => i j.
+      rewrite !mxE (bigD1 ord0) //= (bigD1 (lift ord0 ord0)) //= big1.
+      * rewrite !mxE addr0 //=.
+        rewrite /= mulrC [y * _]mulrC in Heq.
+        exact: Heq.
+      * move=> k.
+        rewrite !mxE => /andP [Hkneq0 /negbTE Hkneq1].
+        case: k Hkneq0 Hkneq1 => [[|[|w]] Hn] //= Hkneq0 Hkneq1.
+        move=> /eqP Hv.
+        exists (v ord0 ord0, v ord0 (lift ord0 ord0)).
+        - rewrite inE; apply/eqP.
+          rewrite /=.
+          move: Hv.
+          rewrite inE => /eqP /eqP /matrixP /(_ ord0 ord0).
+          rewrite !mxE (bigD1 ord0) //= (bigD1 (lift ord0 ord0)) //= big1.
+          - rewrite !mxE addr0 //=.
+            move => Heqz.
+            rewrite mulrC in Heqz.
+            rewrite [X in _ + X]mulrC in Heqz.
+            exact: Heqz.
+      move => i => /andP [] Hneq0 Hneq1.
+      exfalso.
+      move: Hneq0 Hneq1.
+      by case: i => [[|[|w]] Hn].
+  apply/rowP => j.
+  rewrite mxE /=.
+  case: j => [[|[|w]] Hn] //=.
+  congr (v _ _); by apply/val_inj.
+  congr (v _ _); by apply: val_inj.
+rewrite bij.
+have transpose_eq : forall v, (v *m X == z_mx) = (X^T *m v^T == z_mx^T).
+  move=> v.
+  by rewrite -(inj_eq (@trmx_inj K 1 1)) trmx_mul.
+have -> : #|[set v : 'rV[K]_2 | v *m X == z_mx]| = 
+          #|[set v : 'rV[K]_2 | X^T *m v^T == z_mx^T]|.
+  apply: eq_card => v.
+  by rewrite !inE transpose_eq.
+have card_transpose : #|[set v : 'rV[K]_2 | X^T *m v^T == z_mx^T]| =
+                      #|[set w : 'cV[K]_2 | X^T *m w == z_mx^T]|.
+  (* Bijection v <-> v^T *)
+  rewrite -(card_in_imset (f := trmx)).
+  - apply: eq_card => w.
+    apply/imsetP/idP.
+    + case=> v.
+      rewrite inE -(transpose_eq) => HvXz HwvTw.
+      rewrite inE HwvTw.
+      rewrite transpose_eq in HvXz.
+      exact: HvXz.
+    + rewrite inE => /eqP Hw.
+      exists w^T.
+      * rewrite inE; apply/eqP.
+        rewrite trmxK.
+        exact: Hw.
+      * by rewrite trmxK.
+    - apply: in2W.
+      apply trmx_inj.
+rewrite card_transpose.
+pose v0col := x0^T : 'cV[K]_2.
+have Hv0col : X^T *m v0col = z_mx^T.
+  rewrite /v0col.
+  have : (x0 *m X)^T = (z_mx^T)^T by rewrite Hx0.
+  rewrite trmx_mul => ->.
+  apply/matrixP => i j.
+  by rewrite !mxE.
+rewrite (@count_affine_solutions_explicit_col 1 2 (X^T) (z_mx^T) v0col Hv0col).
+by rewrite mxrank_tr rank_X expn1 /=.
+Qed.
+
 End FiniteSolutionCounting.
 
