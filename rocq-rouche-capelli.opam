@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "rocq-rouche-capelli"
-version: "0.1.0"
+version: "0.2.0"
 synopsis: "A proof for the Rouché–Capelli theorem by rocq-math-comp"
 description: """
 This package provides a formal proof of the Rouché–Capelli theorem (also known as
